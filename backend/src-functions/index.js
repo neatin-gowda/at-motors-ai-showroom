@@ -11,12 +11,63 @@ const {
 } = require('./shared');
 
 const SYSTEM_PROMPT = `You are the AT MOTORS luxury automotive AI concierge.
-Represent a premium showroom with Ferrari, Ford performance, and Maserati vehicles.
+Represent a premium showroom with Ferrari, Ford Mustang performance, Maserati, Deepal EV, and other luxury or performance vehicles when requested.
 Use the supplied showroom context first. If context is missing, say so briefly and give a helpful next step.
 Keep answers polished, concise, and sales-useful.
 When comparison is requested, compare performance, comfort, ownership fit, budget tier, and appointment next step.
 Never invent exact inventory availability.
 Strictly refuse non-automotive topics and redirect the user back to cars, automotive ownership, finance, test drives, showroom bookings, or AT MOTORS.`;
+
+const IMAGE_CATALOG = [
+  {
+    aliases: ['ferrari', 'sf90', 'roma', '296', 'purosangue'],
+    imageUrl: 'https://images.unsplash.com/photo-1556516731-779d3492975b?auto=format&fit=crop&q=90&w=2200',
+  },
+  {
+    aliases: ['ford', 'mustang', 'gt', 'shelby', 'dark horse'],
+    imageUrl: 'https://images.unsplash.com/photo-1561535743-c82c241502d5?auto=format&fit=crop&q=90&w=2200',
+  },
+  {
+    aliases: ['maserati', 'mc20', 'granturismo', 'grecale', 'levante'],
+    imageUrl: 'https://images.unsplash.com/photo-1756548843479-3783100b3447?auto=format&fit=crop&q=90&w=2200',
+  },
+  {
+    aliases: ['deepal', 's07', 'sl03', 'changan'],
+    imageUrl: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&q=90&w=2200',
+  },
+  {
+    aliases: ['porsche', '911', 'taycan', 'cayenne', 'panamera'],
+    imageUrl: 'https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&q=90&w=2200',
+  },
+  {
+    aliases: ['tesla', 'model s', 'model 3', 'model x', 'model y'],
+    imageUrl: 'https://images.unsplash.com/photo-1560958089-b8a1929cea89?auto=format&fit=crop&q=90&w=2200',
+  },
+  {
+    aliases: ['mercedes', 'benz', 'amg', 's-class', 'g-class', 'eqs'],
+    imageUrl: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&q=90&w=2200',
+  },
+  {
+    aliases: ['bmw', 'm3', 'm4', 'm5', '7 series', 'i7'],
+    imageUrl: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&q=90&w=2200',
+  },
+  {
+    aliases: ['audi', 'rs', 'r8', 'e-tron', 'q8'],
+    imageUrl: 'https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?auto=format&fit=crop&q=90&w=2200',
+  },
+  {
+    aliases: ['lamborghini', 'huracan', 'urus', 'revuelto', 'aventador'],
+    imageUrl: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?auto=format&fit=crop&q=90&w=2200',
+  },
+  {
+    aliases: ['bentley', 'continental', 'bentayga', 'flying spur'],
+    imageUrl: 'https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?auto=format&fit=crop&q=90&w=2200',
+  },
+  {
+    aliases: ['rolls', 'royce', 'ghost', 'phantom', 'cullinan'],
+    imageUrl: 'https://images.unsplash.com/photo-1563720360172-67b8f3dce741?auto=format&fit=crop&q=90&w=2200',
+  },
+];
 
 function isAutomotiveTopic(message) {
   const text = String(message || '').toLowerCase();
@@ -26,7 +77,7 @@ function isAutomotiveTopic(message) {
     'coupe', 'convertible', 'horsepower', 'hp', 'torque', '0-100', '0 to 100',
     'price', 'finance', 'booking', 'viewing', 'test drive', 'compare',
     'ferrari', 'ford', 'mustang', 'maserati', 'porsche', 'lucid', 'mercedes',
-    'bmw', 'audi', 'tesla', 'lamborghini', 'bentley', 'rolls',
+    'bmw', 'audi', 'tesla', 'lamborghini', 'bentley', 'rolls', 'deepal',
   ].some((term) => text.includes(term));
 }
 
@@ -124,14 +175,16 @@ function inferComparedVehicles(message) {
 
 function imageForVehicle(vehicle, sources) {
   const name = `${vehicle.brand || ''} ${vehicle.model || vehicle.name || ''}`.toLowerCase();
+  const catalogMatch = IMAGE_CATALOG.find((item) => item.aliases.some((alias) => name.includes(alias)));
+  if (catalogMatch) return catalogMatch.imageUrl;
+
   const matched = sources.find((source) => {
     const haystack = `${source.name || ''} ${source.snippet || ''}`.toLowerCase();
     return source.thumbnailUrl && name.split(/\s+/).filter((word) => word.length > 2).some((word) => haystack.includes(word));
   });
   if (matched?.thumbnailUrl) return matched.thumbnailUrl;
 
-  const query = encodeURIComponent(`${vehicle.name || `${vehicle.brand || ''} ${vehicle.model || ''}`} luxury car exterior`);
-  return `https://source.unsplash.com/1600x900/?${query}`;
+  return 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=90&w=2200';
 }
 
 function escapeRegExp(value) {
@@ -157,7 +210,7 @@ function fallbackComparison(message, sources = []) {
   const vehicles = names.map((name) => normalizeVehicle({ name }, name, sources));
   return {
     title: `${vehicles[0].name} vs ${vehicles[1].name}`,
-    summary: 'Live specification data is not available yet. I can still stage the comparison and use verified sources once Azure OpenAI and Bing data are reachable.',
+    summary: 'I can stage the comparison now and enrich the numbers through the configured GPT chat model when available.',
     vehicles,
     rows: ['Engine', 'Top speed', '0-100 km/h', 'Estimated price', 'Best fit'].map((label) => ({
       label,
@@ -207,9 +260,9 @@ function normalizeComparison(raw, message, sources) {
 async function buildStructuredComparison(message, context, sources) {
   const sourceText = sources.length
     ? sources.map((source, index) => `[${index + 1}] ${source.name}\n${source.url}\n${source.snippet}`).join('\n\n')
-    : 'No live search sources were available. If exact specs are not available, write "Not verified" instead of inventing numbers.';
+    : 'No web search sources are configured. Use general automotive knowledge, keep values realistic, and mark approximate values with "approx." when needed.';
   const messages = [
-    { role: 'system', content: `${SYSTEM_PROMPT}\nReturn only valid JSON for the UI. Do not wrap in markdown. Do not invent specs. Use "Not verified" for unknown exact values.` },
+    { role: 'system', content: `${SYSTEM_PROMPT}\nReturn only valid JSON for the UI. Do not wrap in markdown. Use concise, realistic automotive data suitable for a luxury comparison UI. Mark uncertain specs as "approx." rather than pretending exact inventory data.` },
     { role: 'system', content: context.text ? `Showroom context:\n${context.text}` : 'No uploaded showroom context is available yet.' },
     { role: 'system', content: `Live source context:\n${sourceText}` },
     {
@@ -235,11 +288,19 @@ Return JSON with this exact shape:
     },
   ];
 
-  const reply = await callAzureOpenAI(messages, {
-    temperature: 0.25,
-    maxTokens: 900,
-    responseFormat: { type: 'json_object' },
-  });
+  let reply = null;
+  try {
+    reply = await callAzureOpenAI(messages, {
+      temperature: 0.25,
+      maxTokens: 900,
+      responseFormat: { type: 'json_object' },
+    });
+  } catch {
+    reply = await callAzureOpenAI(messages, {
+      temperature: 0.25,
+      maxTokens: 900,
+    });
+  }
   return extractJsonObject(reply);
 }
 
@@ -414,10 +475,7 @@ app.http('comparison', {
       if (!isAutomotiveTopic(message)) return badRequest('Comparison requests must stay automotive.');
 
       const docContext = await getDocumentContext().catch(() => ({ names: [], text: '' }));
-      const sources = await searchCarSources(`${message} official specifications engine range price performance UAE`).catch((error) => {
-        log(context, 'warn', 'Comparison search failed', { error: error.message });
-        return [];
-      });
+      const sources = [];
 
       let raw = null;
       try {
