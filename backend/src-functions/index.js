@@ -15,7 +15,20 @@ Represent a premium showroom with Ferrari, Ford performance, and Maserati vehicl
 Use the supplied showroom context first. If context is missing, say so briefly and give a helpful next step.
 Keep answers polished, concise, and sales-useful.
 When comparison is requested, compare performance, comfort, ownership fit, budget tier, and appointment next step.
-Never invent exact inventory availability.`;
+Never invent exact inventory availability.
+Strictly refuse non-automotive topics and redirect the user back to cars, automotive ownership, finance, test drives, showroom bookings, or AT MOTORS.`;
+
+function isAutomotiveTopic(message) {
+  const text = String(message || '').toLowerCase();
+  return [
+    'car', 'cars', 'auto', 'automotive', 'vehicle', 'vehicles', 'motor', 'motors',
+    'engine', 'speed', 'drive', 'driving', 'luxury', 'supercar', 'sedan', 'suv',
+    'coupe', 'convertible', 'horsepower', 'hp', 'torque', '0-100', '0 to 100',
+    'price', 'finance', 'booking', 'viewing', 'test drive', 'compare',
+    'ferrari', 'ford', 'mustang', 'maserati', 'porsche', 'lucid', 'mercedes',
+    'bmw', 'audi', 'tesla', 'lamborghini', 'bentley', 'rolls',
+  ].some((term) => text.includes(term));
+}
 
 function getRealtimeWebSocketUrl() {
   const endpoint = (process.env.AZURE_REALTIME_ENDPOINT || process.env.AZURE_OPENAI_ENDPOINT || '').replace(/\/+$/, '');
@@ -192,6 +205,14 @@ app.http('chat', {
       const message = trimText(body.message, 2000);
       const history = Array.isArray(body.history) ? body.history.slice(-8) : [];
       if (!message) return badRequest('Message is required.');
+      if (!isAutomotiveTopic(message)) {
+        return ok({
+          reply: 'I can only assist with AT MOTORS, cars, automotive comparisons, ownership, finance, test drives, and showroom bookings.',
+          source: 'guardrail',
+          documentsUsed: [],
+          sources: [],
+        });
+      }
 
       const docContext = await getDocumentContext();
       let sources = [];
