@@ -19,7 +19,7 @@ The project is ready to push into a new GitHub repo and deploy to Azure Static W
 - Azure OpenAI chat endpoint using uploaded showroom context.
 - Optional lead-capture API endpoint.
 
-## Project Structure
+## Project Structures
 
 ```text
 at-motors-ai-showroom/
