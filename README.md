@@ -14,7 +14,8 @@ The project is ready to push into a new GitHub repo and deploy to Azure Static W
 - Automatic inline insight popup after a voice or text ask.
 - Two-vehicle comparison panel for comparison asks and action panels for booking, finance, daily-use, or other requests.
 - Premium single-screen cockpit UI with a voice-reactive generative orb.
-- Optional Bing grounding for live comparison citations.
+- GPT chat model generates structured comparison JSON for the UI.
+- Optional Bing grounding for live citations in chat answers.
 - Azure Functions backend.
 - Cosmos DB document-context store.
 - Azure OpenAI chat endpoint using uploaded showroom context.
@@ -235,7 +236,7 @@ After deployment:
 - The browser streams microphone PCM16 audio to the realtime model and plays returned PCM16 audio chunks directly.
 - Browser `speechSynthesis` is kept only as a fallback for non-realtime chat errors.
 - The orb motion uses Web Audio frequency analysis from the microphone and maps the signal into CSS variable `--voice-level`.
-- Comparison asks open a horizontal side-by-side stage with source links when Bing grounding is configured.
+- Comparison asks open a horizontal side-by-side stage from structured GPT chat JSON and curated vehicle imagery.
 - If Azure OpenAI settings are missing, the backend returns a useful fallback response so the UI still works.
 
 ## Realtime Voice Upgrade Notes
