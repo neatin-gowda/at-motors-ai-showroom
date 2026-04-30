@@ -45,7 +45,7 @@ function getRealtimeWebSocketUrl() {
   return `wss://${host}/openai/v1/realtime?model=${encodeURIComponent(deployment)}&api-key=${queryKey}`;
 }
 
-async function callAzureOpenAI(messages) {
+async function callAzureOpenAI(messages, options = {}) {
   const endpoint = (process.env.AZURE_OPENAI_ENDPOINT || '').replace(/\/+$/, '');
   const key = process.env.AZURE_OPENAI_API_KEY;
   const deployment = process.env.AZURE_OPENAI_DEPLOYMENT;
@@ -60,8 +60,9 @@ async function callAzureOpenAI(messages) {
     },
     body: JSON.stringify({
       messages,
-      temperature: 0.45,
-      max_tokens: 650,
+      temperature: options.temperature ?? 0.45,
+      max_tokens: options.maxTokens ?? 650,
+      ...(options.responseFormat ? { response_format: options.responseFormat } : {}),
     }),
   });
 
@@ -89,7 +90,157 @@ async function searchCarSources(query) {
     name: item.name,
     url: item.url,
     snippet: item.snippet,
+    thumbnailUrl: item.thumbnailUrl || item.image?.thumbnailUrl || item.primaryImageOfPage?.thumbnailUrl || '',
   }));
+}
+
+function extractJsonObject(value) {
+  const text = String(value || '').trim();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    try {
+      return JSON.parse(match[0]);
+    } catch {
+      return null;
+    }
+  }
+}
+
+function inferComparedVehicles(message) {
+  const text = trimText(message, 300)
+    .replace(/\b(compare|comparison|between|please|can you|show me|cars?|vehicles?)\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const parts = text
+    .split(/\s+(?:vs\.?|versus|and|with|against)\s+/i)
+    .map((part) => part.replace(/[?.!,]/g, '').trim())
+    .filter(Boolean);
+  return parts.length >= 2 ? parts.slice(0, 2) : ['Vehicle A', 'Vehicle B'];
+}
+
+function imageForVehicle(vehicle, sources) {
+  const name = `${vehicle.brand || ''} ${vehicle.model || vehicle.name || ''}`.toLowerCase();
+  const matched = sources.find((source) => {
+    const haystack = `${source.name || ''} ${source.snippet || ''}`.toLowerCase();
+    return source.thumbnailUrl && name.split(/\s+/).filter((word) => word.length > 2).some((word) => haystack.includes(word));
+  });
+  if (matched?.thumbnailUrl) return matched.thumbnailUrl;
+
+  const query = encodeURIComponent(`${vehicle.name || `${vehicle.brand || ''} ${vehicle.model || ''}`} luxury car exterior`);
+  return `https://source.unsplash.com/1600x900/?${query}`;
+}
+
+function escapeRegExp(value) {
+  return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function normalizeVehicle(vehicle, fallbackName, sources) {
+  const rawName = trimText(vehicle?.name || fallbackName, 80) || fallbackName;
+  const brand = trimText(vehicle?.brand || rawName.split(' ')[0], 50);
+  const model = trimText(vehicle?.model || rawName.replace(new RegExp(`^${escapeRegExp(brand)}\\s*`, 'i'), ''), 80) || rawName;
+  const type = trimText(vehicle?.type || vehicle?.segment || 'Luxury vehicle', 60);
+  const specs = vehicle?.specs && typeof vehicle.specs === 'object' ? vehicle.specs : {};
+  const normalized = { name: rawName, brand, model, type, specs };
+  return {
+    ...normalized,
+    imageUrl: trimText(vehicle?.imageUrl || vehicle?.image || '', 600) || imageForVehicle(normalized, sources),
+    highlight: trimText(vehicle?.highlight || vehicle?.bestFor || 'Private showroom fit', 100),
+  };
+}
+
+function fallbackComparison(message, sources = []) {
+  const names = inferComparedVehicles(message);
+  const vehicles = names.map((name) => normalizeVehicle({ name }, name, sources));
+  return {
+    title: `${vehicles[0].name} vs ${vehicles[1].name}`,
+    summary: 'Live specification data is not available yet. I can still stage the comparison and use verified sources once Azure OpenAI and Bing data are reachable.',
+    vehicles,
+    rows: ['Engine', 'Top speed', '0-100 km/h', 'Estimated price', 'Best fit'].map((label) => ({
+      label,
+      values: ['Awaiting verified data', 'Awaiting verified data'],
+    })),
+    sources,
+  };
+}
+
+function normalizeComparison(raw, message, sources) {
+  const fallback = fallbackComparison(message, sources);
+  const vehicles = Array.isArray(raw?.vehicles) ? raw.vehicles.slice(0, 2) : [];
+  const normalizedVehicles = [
+    normalizeVehicle(vehicles[0], fallback.vehicles[0].name, sources),
+    normalizeVehicle(vehicles[1], fallback.vehicles[1].name, sources),
+  ];
+
+  const rowLabels = ['Engine', 'Top speed', '0-100 km/h', 'Estimated price', 'Best fit'];
+  const rows = Array.isArray(raw?.rows) && raw.rows.length
+    ? raw.rows.slice(0, 8).map((row) => ({
+      label: trimText(row.label, 40),
+      values: Array.isArray(row.values)
+        ? row.values.slice(0, 2).map((value) => trimText(value, 80) || 'Not verified')
+        : [
+          trimText(row.left || row.a || '', 80) || 'Not verified',
+          trimText(row.right || row.b || '', 80) || 'Not verified',
+        ],
+    })).filter((row) => row.label)
+    : rowLabels.map((label) => ({
+      label,
+      values: [
+        trimText(normalizedVehicles[0].specs?.[label] || normalizedVehicles[0].specs?.[label.toLowerCase()] || '', 80) || 'Not verified',
+        trimText(normalizedVehicles[1].specs?.[label] || normalizedVehicles[1].specs?.[label.toLowerCase()] || '', 80) || 'Not verified',
+      ],
+    }));
+
+  return {
+    title: trimText(raw?.title, 120) || `${normalizedVehicles[0].name} vs ${normalizedVehicles[1].name}`,
+    summary: trimText(raw?.summary, 360) || fallback.summary,
+    recommendation: trimText(raw?.recommendation, 220) || '',
+    vehicles: normalizedVehicles,
+    rows,
+    sources,
+  };
+}
+
+async function buildStructuredComparison(message, context, sources) {
+  const sourceText = sources.length
+    ? sources.map((source, index) => `[${index + 1}] ${source.name}\n${source.url}\n${source.snippet}`).join('\n\n')
+    : 'No live search sources were available. If exact specs are not available, write "Not verified" instead of inventing numbers.';
+  const messages = [
+    { role: 'system', content: `${SYSTEM_PROMPT}\nReturn only valid JSON for the UI. Do not wrap in markdown. Do not invent specs. Use "Not verified" for unknown exact values.` },
+    { role: 'system', content: context.text ? `Showroom context:\n${context.text}` : 'No uploaded showroom context is available yet.' },
+    { role: 'system', content: `Live source context:\n${sourceText}` },
+    {
+      role: 'user',
+      content: `Create a luxury automotive comparison from this request: "${message}".
+Return JSON with this exact shape:
+{
+  "title": "Vehicle A vs Vehicle B",
+  "summary": "one polished sentence for the showroom UI",
+  "recommendation": "one concise buying guidance sentence",
+  "vehicles": [
+    {"name":"", "brand":"", "model":"", "type":"", "highlight":"", "specs":{"Engine":"","Top speed":"","0-100 km/h":"","Estimated price":"","Best fit":""}},
+    {"name":"", "brand":"", "model":"", "type":"", "highlight":"", "specs":{"Engine":"","Top speed":"","0-100 km/h":"","Estimated price":"","Best fit":""}}
+  ],
+  "rows": [
+    {"label":"Engine","values":["",""]},
+    {"label":"Top speed","values":["",""]},
+    {"label":"0-100 km/h","values":["",""]},
+    {"label":"Estimated price","values":["",""]},
+    {"label":"Best fit","values":["",""]}
+  ]
+}`,
+    },
+  ];
+
+  const reply = await callAzureOpenAI(messages, {
+    temperature: 0.25,
+    maxTokens: 900,
+    responseFormat: { type: 'json_object' },
+  });
+  return extractJsonObject(reply);
 }
 
 function needsLiveCarSearch(message) {
@@ -247,6 +398,41 @@ app.http('chat', {
     } catch (error) {
       log(context, 'error', 'Chat failed', { error: error.message });
       return serverError('Could not answer with the AT MOTORS concierge.');
+    }
+  },
+});
+
+app.http('comparison', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'at-motors/comparison',
+  handler: async (request, context) => {
+    try {
+      const body = await request.json().catch(() => ({}));
+      const message = trimText(body.message, 2000);
+      if (!message) return badRequest('Message is required.');
+      if (!isAutomotiveTopic(message)) return badRequest('Comparison requests must stay automotive.');
+
+      const docContext = await getDocumentContext().catch(() => ({ names: [], text: '' }));
+      const sources = await searchCarSources(`${message} official specifications engine range price performance UAE`).catch((error) => {
+        log(context, 'warn', 'Comparison search failed', { error: error.message });
+        return [];
+      });
+
+      let raw = null;
+      try {
+        raw = await buildStructuredComparison(message, docContext, sources);
+      } catch (error) {
+        log(context, 'warn', 'Structured comparison failed', { error: error.message });
+      }
+
+      return ok({
+        comparison: normalizeComparison(raw, message, sources),
+        documentsUsed: docContext.names,
+      });
+    } catch (error) {
+      log(context, 'error', 'Comparison failed', { error: error.message });
+      return serverError('Could not build the AT MOTORS comparison.');
     }
   },
 });
