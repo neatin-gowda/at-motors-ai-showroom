@@ -12,6 +12,8 @@ The project is ready to push into a new GitHub repo and deploy to Azure Static W
 - AI comparison screens.
 - Browser voice input with speech recognition where supported.
 - Browser voice output with synced listening, thinking, streaming, and speaking animation.
+- Automatic inline insight popup after a voice or text ask.
+- Two-vehicle comparison panel for comparison asks and action panels for booking, finance, daily-use, or other requests.
 - Azure Functions backend.
 - Cosmos DB document-context store.
 - Azure OpenAI chat endpoint using uploaded showroom context.
@@ -213,6 +215,7 @@ After deployment:
 
 ## Notes
 
-- Speech recognition support depends on the browser.
-- Speech output uses the browser Web Speech API.
+- Speech-to-text uses the browser `SpeechRecognition` / `webkitSpeechRecognition` API. It works best in Chrome and Edge over HTTPS or localhost.
+- Text-to-speech uses the browser `speechSynthesis` API.
+- After speech is recognized, the app automatically opens an inline AT MOTORS insight panel. Comparison asks show a two-vehicle panel; other asks show a tailored action/recommendation panel.
 - If Azure OpenAI settings are missing, the backend returns a useful fallback response so the UI still works.
