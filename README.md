@@ -70,6 +70,10 @@ Update `backend/local.settings.json` with:
   "AZURE_OPENAI_API_KEY": "YOUR_AZURE_OPENAI_KEY",
   "AZURE_OPENAI_DEPLOYMENT": "gpt-4.1-mini",
   "AZURE_OPENAI_API_VERSION": "2024-10-21",
+  "AZURE_REALTIME_ENDPOINT": "https://YOUR-AZURE-OPENAI-RESOURCE.openai.azure.com",
+  "AZURE_REALTIME_API_KEY": "YOUR_AZURE_OPENAI_KEY",
+  "AZURE_REALTIME_DEPLOYMENT": "gpt-realtime-mini",
+  "AZURE_REALTIME_API_VERSION": "2025-04-01-preview",
   "BING_SEARCH_ENDPOINT": "https://api.bing.microsoft.com/v7.0/search",
   "BING_SEARCH_KEY": "YOUR_BING_SEARCH_KEY"
 }
@@ -196,6 +200,10 @@ AZURE_OPENAI_ENDPOINT
 AZURE_OPENAI_API_KEY
 AZURE_OPENAI_DEPLOYMENT
 AZURE_OPENAI_API_VERSION
+AZURE_REALTIME_ENDPOINT
+AZURE_REALTIME_API_KEY
+AZURE_REALTIME_DEPLOYMENT
+AZURE_REALTIME_API_VERSION
 BING_SEARCH_ENDPOINT
 BING_SEARCH_KEY
 ```
@@ -205,6 +213,8 @@ Recommended values:
 ```text
 COSMOS_DB=atmotors
 AZURE_OPENAI_API_VERSION=2024-10-21
+AZURE_REALTIME_DEPLOYMENT=gpt-realtime-mini
+AZURE_REALTIME_API_VERSION=2025-04-01-preview
 BING_SEARCH_ENDPOINT=https://api.bing.microsoft.com/v7.0/search
 ```
 
@@ -230,7 +240,7 @@ After deployment:
 
 ## Realtime Voice Upgrade Notes
 
-The current deployable app uses browser speech APIs plus Azure OpenAI chat because it works with `gpt-4.1-mini`.
+The app now calls `/api/at-motors/realtime-session` to get a WebSocket URL for Azure GPT Realtime, then streams the text ask to the realtime deployment. Browser speech recognition captures the user request, and the realtime model streams the answer text back into the cockpit.
 
 For true Azure GPT Realtime or Voice Live:
 
@@ -238,3 +248,9 @@ For true Azure GPT Realtime or Voice Live:
 - `gpt-4.1-mini` is not a realtime speech model.
 - Voice Live supports server VAD and barge-in through `turn_detection.interrupt_response`.
 - For browser apps, Microsoft recommends WebRTC for lowest latency.
+
+Current implementation:
+
+- `gpt-4.1-mini` remains the normal chat fallback.
+- `gpt-realtime-mini` is used first through WebSocket when `AZURE_REALTIME_*` variables are configured.
+- The browser still performs speech-to-text and text-to-speech. Full audio-in/audio-out realtime streaming can be added next with PCM/WebRTC handling.
