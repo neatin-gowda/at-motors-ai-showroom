@@ -83,6 +83,138 @@ function localReply(message) {
   return 'I can compare models, explain ownership fit, qualify budget, and help book a private viewing with AT MOTORS.';
 }
 
+function parseAsk(message) {
+  const text = message.toLowerCase();
+  const mentioned = cars.filter((car) => text.includes(car.maker.toLowerCase()));
+  const primary = mentioned[0] || cars[0];
+  const secondary = mentioned.find((car) => car.maker !== primary.maker) || cars.find((car) => car.maker !== primary.maker) || cars[1];
+  const isComparison = text.includes('compare') || mentioned.length > 1 || text.includes('versus') || text.includes(' vs ');
+  const isBooking = text.includes('book') || text.includes('viewing') || text.includes('appointment') || text.includes('test');
+  const isFinance = text.includes('finance') || text.includes('payment') || text.includes('emi') || text.includes('loan');
+  const isDaily = text.includes('daily') || text.includes('comfort') || text.includes('dubai');
+
+  if (isComparison) {
+    return {
+      title: `${primary.maker} vs ${secondary.maker}`,
+      label: 'Two-vehicle comparison',
+      summary: `${primary.maker} is positioned for ${primary.type.toLowerCase()} emotion. ${secondary.maker} gives a different ownership profile for comfort, value, or daily use.`,
+      cars: [primary, secondary],
+      rows: [
+        ['Performance', primary.sprint, secondary.sprint],
+        ['Power', primary.power, secondary.power],
+        ['Budget tier', primary.price, secondary.price],
+        ['Best use', primary.type, secondary.type],
+      ],
+      next: 'Ask the concierge to convert this comparison into a private viewing shortlist.',
+    };
+  }
+
+  if (isBooking) {
+    return {
+      title: 'Private Viewing Request',
+      label: 'Showroom action',
+      summary: 'The agent can qualify preferred date, model shortlist, contact details, and hand the lead to the showroom team.',
+      cars: [primary, secondary],
+      rows: [
+        ['Intent', 'Viewing', 'High-touch concierge'],
+        ['Suggested model', primary.maker, primary.model],
+        ['Backup model', secondary.maker, secondary.model],
+      ],
+      next: 'Collect name, phone, preferred time, and model preference.',
+    };
+  }
+
+  if (isFinance) {
+    return {
+      title: 'Finance Guidance',
+      label: 'Ownership fit',
+      summary: 'The agent can explain budget tier, deposit assumptions, ownership expectations, and which model fits the buyer profile.',
+      cars: [primary, secondary],
+      rows: [
+        ['Entry point', 'Ford', 'Strongest value'],
+        ['Premium tier', 'Maserati', 'Grand touring luxury'],
+        ['Bespoke tier', 'Ferrari', 'Collector consultation'],
+      ],
+      next: 'Ask for budget range and preferred monthly payment.',
+    };
+  }
+
+  if (isDaily) {
+    return {
+      title: 'Daily-Use Recommendation',
+      label: 'Driving profile',
+      summary: 'For daily comfort and presence, Maserati usually leads. Ford gives value and usability. Ferrari is the emotional weekend choice.',
+      cars: [cars[2], cars[1]],
+      rows: [
+        ['Comfort', 'Maserati', 'Luxury touring'],
+        ['Value', 'Ford', 'Daily performance'],
+        ['Emotion', 'Ferrari', 'Weekend theatre'],
+      ],
+      next: 'Ask whether the buyer prioritizes comfort, sound, image, or resale.',
+    };
+  }
+
+  return {
+    title: 'Concierge Answer Panel',
+    label: 'AI showroom insight',
+    summary: 'The agent can turn this request into a model recommendation, ownership explanation, or lead-capture workflow.',
+    cars: [primary, secondary],
+    rows: [
+      ['Primary model', primary.maker, primary.model],
+      ['Alternative', secondary.maker, secondary.model],
+      ['Next step', 'Clarify intent', 'Recommend shortlist'],
+    ],
+    next: 'Ask for driving style, budget, timeline, and preferred contact method.',
+  };
+}
+
+function InsightPanel({ insight, onClose, onSpeak }) {
+  if (!insight) return null;
+  const [first, second] = insight.cars;
+
+  return (
+    <div className="insightOverlay" role="dialog" aria-modal="true" aria-label="AT MOTORS insight panel">
+      <div className="insightPanel">
+        <div className="insightTop">
+          <div>
+            <span>{insight.label}</span>
+            <h3>{insight.title}</h3>
+          </div>
+          <button onClick={onClose} aria-label="Close insight panel">Close</button>
+        </div>
+        <p className="insightAsk">Recognized ask: {insight.ask}</p>
+        <div className="insightCars">
+          {[first, second].map((car) => (
+            <div key={car.model}>
+              <img src={car.img} alt={`${car.maker} ${car.model}`} />
+              <strong>{car.maker}</strong>
+              <small>{car.model}</small>
+            </div>
+          ))}
+        </div>
+        <div className="insightRows">
+          {insight.rows.map((row) => (
+            <div key={row.join('-')}>
+              <span>{row[0]}</span>
+              <b>{row[1]}</b>
+              <em>{row[2]}</em>
+            </div>
+          ))}
+        </div>
+        <div className="insightAnswer">
+          <strong>AI answer</strong>
+          <p>{insight.answer || insight.summary}</p>
+        </div>
+        <div className="insightActions">
+          <button onClick={() => onSpeak(insight.answer || insight.summary)}>Speak Panel</button>
+          <a href="#voice-agent" onClick={onClose}>Continue Chat</a>
+        </div>
+        <p className="insightNext">{insight.next}</p>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [activeCar, setActiveCar] = useState(0);
   const [messages, setMessages] = useState([
@@ -94,6 +226,7 @@ function App() {
   const [docStatus, setDocStatus] = useState('');
   const [phase, setPhase] = useState('idle');
   const [listening, setListening] = useState(false);
+  const [insight, setInsight] = useState(null);
   const chatRef = useRef(null);
   const recognitionRef = useRef(null);
   const heardVoiceRef = useRef(false);
@@ -166,6 +299,7 @@ function App() {
     const value = text.trim();
     if (!value) return;
 
+    setInsight({ ...parseAsk(value), ask: value, answer: 'Preparing a showroom insight while the AI concierge responds...' });
     const history = messages.slice(-8);
     setMessages((current) => [...current, { from: 'user', text: value }]);
     setPrompt('');
@@ -179,9 +313,12 @@ function App() {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Chat failed');
+      setInsight((current) => current ? { ...current, answer: data.reply } : current);
       streamReply(data.reply, data.source, data.documentsUsed);
     } catch {
-      streamReply(localReply(value), 'local');
+      const reply = localReply(value);
+      setInsight((current) => current ? { ...current, answer: reply } : current);
+      streamReply(reply, 'local');
     }
   };
 
@@ -214,6 +351,7 @@ function App() {
     recognition.onresult = (event) => {
       const transcript = event.results?.[0]?.[0]?.transcript || '';
       heardVoiceRef.current = !!transcript;
+      if (transcript) setInsight({ ...parseAsk(transcript), ask: transcript, answer: 'Voice recognized. Opening the showroom insight panel now...' });
       send(transcript);
     };
     recognitionRef.current = recognition;
@@ -379,6 +517,7 @@ function App() {
           {docStatus && <p>{docStatus}</p>}
         </div>
       </section>
+      <InsightPanel insight={insight} onClose={() => setInsight(null)} onSpeak={speak} />
     </main>
   );
 }
