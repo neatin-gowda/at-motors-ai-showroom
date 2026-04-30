@@ -10,7 +10,7 @@
     }
   ],
   "globalHeaders": {
-    "Content-Security-Policy": "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com; script-src 'self'; connect-src 'self' https://*.azurewebsites.net",
+    "Content-Security-Policy": "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com; script-src 'self'; connect-src 'self' https://*.azurewebsites.net https://*.openai.azure.com wss://*.openai.azure.com",
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "strict-origin-when-cross-origin"
