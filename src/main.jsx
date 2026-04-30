@@ -1,8 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
+const REALTIME_SAMPLE_RATE = 24000;
+const REALTIME_INSTRUCTIONS = 'You are AT MOTORS luxury automotive AI concierge. Only answer automotive, car comparison, ownership, finance, test-drive, showroom, and AT MOTORS questions. If asked anything outside automotive, politely refuse and redirect to cars. Be concise, premium, and helpful. If comparing cars, focus on performance, comfort, ownership fit, price tier, and next viewing step. Do not mention setup, Bing, grounding, environment variables, or Azure.';
 
 const cars = [
   {
@@ -36,6 +38,61 @@ const cars = [
     img: 'https://images.unsplash.com/photo-1756548843479-3783100b3447?auto=format&fit=crop&q=88&w=2200',
   },
 ];
+
+function bytesToBase64(bytes) {
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+  return btoa(binary);
+}
+
+function base64ToInt16(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return new Int16Array(bytes.buffer);
+}
+
+function resampleTo24k(samples, inputSampleRate) {
+  if (inputSampleRate === REALTIME_SAMPLE_RATE) return samples;
+  const ratio = inputSampleRate / REALTIME_SAMPLE_RATE;
+  const outputLength = Math.max(1, Math.round(samples.length / ratio));
+  const output = new Float32Array(outputLength);
+
+  for (let outputIndex = 0; outputIndex < outputLength; outputIndex += 1) {
+    const start = Math.floor(outputIndex * ratio);
+    const end = Math.min(samples.length, Math.floor((outputIndex + 1) * ratio));
+    let sum = 0;
+    let count = 0;
+    for (let inputIndex = start; inputIndex < end; inputIndex += 1) {
+      sum += samples[inputIndex];
+      count += 1;
+    }
+    output[outputIndex] = count ? sum / count : samples[start] || 0;
+  }
+
+  return output;
+}
+
+function floatToPcm16Base64(samples, inputSampleRate) {
+  const resampled = resampleTo24k(samples, inputSampleRate);
+  const pcm = new Int16Array(resampled.length);
+  for (let index = 0; index < resampled.length; index += 1) {
+    const sample = Math.max(-1, Math.min(1, resampled[index]));
+    pcm[index] = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
+  }
+  return bytesToBase64(new Uint8Array(pcm.buffer));
+}
+
+function createAudioContext() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) throw new Error('Web Audio is not supported');
+  return new AudioContextClass();
+}
 
 function Icon({ name }) {
   const paths = {
@@ -124,13 +181,23 @@ function App() {
   const [sources, setSources] = useState([]);
   const [input, setInput] = useState('');
 
-  const recognitionRef = useRef(null);
   const realtimeRef = useRef(null);
+  const closeRealtimeOnDoneRef = useRef(false);
   const analyserRef = useRef(null);
   const rafRef = useRef(null);
-  const audioContextRef = useRef(null);
+  const inputContextRef = useRef(null);
   const mediaStreamRef = useRef(null);
-  const SpeechRecognition = useMemo(() => window.SpeechRecognition || window.webkitSpeechRecognition || null, []);
+  const processorRef = useRef(null);
+  const zeroGainRef = useRef(null);
+  const playbackContextRef = useRef(null);
+  const playbackTimeRef = useRef(0);
+  const playbackSourcesRef = useRef([]);
+  const mutedRef = useRef(false);
+  const comparisonRef = useRef(null);
+  const responseTextRef = useRef('');
+  const responseHasAudioTranscriptRef = useRef(false);
+  const modelRespondingRef = useRef(false);
+  const lastUserTranscriptRef = useRef('');
   const background = comparison?.left || cars[activeCar];
 
   useEffect(() => {
@@ -142,28 +209,108 @@ function App() {
     document.documentElement.style.setProperty('--voice-level', String(level));
   }, [level]);
 
-  const stopAnalyser = () => {
+  useEffect(() => {
+    mutedRef.current = muted;
+  }, [muted]);
+
+  useEffect(() => {
+    comparisonRef.current = comparison;
+  }, [comparison]);
+
+  const stopPlayback = () => {
+    playbackSourcesRef.current.forEach((source) => {
+      try {
+        source.stop();
+      } catch {
+        // Source may already be stopped.
+      }
+    });
+    playbackSourcesRef.current = [];
+    playbackTimeRef.current = 0;
+  };
+
+  const getPlaybackContext = async () => {
+    let context = playbackContextRef.current;
+    if (!context || context.state === 'closed') {
+      context = createAudioContext();
+      playbackContextRef.current = context;
+    }
+    if (context.state === 'suspended') await context.resume();
+    return context;
+  };
+
+  const playRealtimeAudio = async (base64Audio) => {
+    if (mutedRef.current || !base64Audio) return;
+    const context = await getPlaybackContext();
+    const pcm = base64ToInt16(base64Audio);
+    const buffer = context.createBuffer(1, pcm.length, REALTIME_SAMPLE_RATE);
+    const channel = buffer.getChannelData(0);
+    for (let index = 0; index < pcm.length; index += 1) {
+      channel[index] = pcm[index] / 0x8000;
+    }
+
+    const source = context.createBufferSource();
+    source.buffer = buffer;
+    source.connect(context.destination);
+    const startAt = Math.max(context.currentTime + 0.02, playbackTimeRef.current || 0);
+    playbackTimeRef.current = startAt + buffer.duration;
+    playbackSourcesRef.current.push(source);
+    source.onended = () => {
+      playbackSourcesRef.current = playbackSourcesRef.current.filter((item) => item !== source);
+    };
+    source.start(startAt);
+  };
+
+  const stopMicStreaming = () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    processorRef.current?.disconnect();
+    zeroGainRef.current?.disconnect();
+    analyserRef.current?.disconnect();
     mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
-    audioContextRef.current?.close().catch(() => {});
+    inputContextRef.current?.close().catch(() => {});
     rafRef.current = null;
+    processorRef.current = null;
+    zeroGainRef.current = null;
+    analyserRef.current = null;
     mediaStreamRef.current = null;
-    audioContextRef.current = null;
+    inputContextRef.current = null;
     setLevel(0);
   };
 
-  const startAnalyser = async () => {
-    stopAnalyser();
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const audioContext = new AudioContext();
+  const startMicStreaming = async (socket) => {
+    stopMicStreaming();
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        channelCount: 1,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    });
+    const audioContext = createAudioContext();
     const analyser = audioContext.createAnalyser();
     const source = audioContext.createMediaStreamSource(stream);
+    const processor = audioContext.createScriptProcessor(4096, 1, 1);
+    const zeroGain = audioContext.createGain();
+    zeroGain.gain.value = 0;
     analyser.fftSize = 256;
     source.connect(analyser);
+    source.connect(processor);
+    processor.connect(zeroGain);
+    zeroGain.connect(audioContext.destination);
     analyserRef.current = analyser;
-    audioContextRef.current = audioContext;
+    inputContextRef.current = audioContext;
     mediaStreamRef.current = stream;
+    processorRef.current = processor;
+    zeroGainRef.current = zeroGain;
     const data = new Uint8Array(analyser.frequencyBinCount);
+
+    processor.onaudioprocess = (event) => {
+      if (socket.readyState !== WebSocket.OPEN) return;
+      const channel = event.inputBuffer.getChannelData(0);
+      const audio = floatToPcm16Base64(channel, audioContext.sampleRate);
+      socket.send(JSON.stringify({ type: 'input_audio_buffer.append', audio }));
+    };
 
     const tick = () => {
       analyser.getByteFrequencyData(data);
@@ -172,6 +319,165 @@ function App() {
       rafRef.current = requestAnimationFrame(tick);
     };
     tick();
+  };
+
+  const handleUserTranscript = (transcript) => {
+    const value = transcript.trim();
+    if (!value || value === lastUserTranscriptRef.current) return;
+    lastUserTranscriptRef.current = value;
+    setRecognized(value);
+    setConversation((items) => [...items, { role: 'user', text: value }].slice(-4));
+    if (isAutomotiveTopic(value)) {
+      setComparison(parseComparison(value));
+      setSources([]);
+    } else {
+      setComparison(null);
+    }
+  };
+
+  const handleRealtimeEvent = (event) => {
+    const data = JSON.parse(event.data);
+    const type = data.type || '';
+
+    if (type === 'response.created') {
+      modelRespondingRef.current = true;
+      responseTextRef.current = '';
+      responseHasAudioTranscriptRef.current = false;
+      setStreamText('');
+      setMode('responding');
+    }
+
+    if (type === 'input_audio_buffer.speech_started') {
+      stopPlayback();
+      responseTextRef.current = '';
+      responseHasAudioTranscriptRef.current = false;
+      setStreamText('');
+      setRecognized('');
+      setMode('listening');
+      if (modelRespondingRef.current && realtimeRef.current?.readyState === WebSocket.OPEN) {
+        try {
+          realtimeRef.current.send(JSON.stringify({ type: 'response.cancel' }));
+        } catch {
+          // The server may have no active response to cancel.
+        }
+      }
+    }
+
+    if (type === 'input_audio_buffer.speech_stopped' || type === 'input_audio_buffer.committed') {
+      setMode('responding');
+    }
+
+    if (
+      type === 'conversation.item.input_audio_transcription.completed' ||
+      type === 'conversation.item.audio_transcription.completed'
+    ) {
+      handleUserTranscript(data.transcript || '');
+    }
+
+    if (
+      type === 'conversation.item.input_audio_transcription.delta' ||
+      type === 'conversation.item.audio_transcription.delta'
+    ) {
+      setRecognized((text) => `${text}${data.delta || ''}`);
+    }
+
+    if (type === 'response.audio.delta' || type === 'response.output_audio.delta') {
+      void playRealtimeAudio(data.delta);
+      setMode('responding');
+    }
+
+    if (type === 'response.audio_transcript.delta' || type === 'response.output_audio_transcript.delta') {
+      responseHasAudioTranscriptRef.current = true;
+      responseTextRef.current += data.delta || '';
+      setStreamText(responseTextRef.current);
+      setMode('responding');
+    }
+
+    if ((type === 'response.text.delta' || type === 'response.output_text.delta') && !responseHasAudioTranscriptRef.current) {
+      responseTextRef.current += data.delta || '';
+      setStreamText(responseTextRef.current);
+      setMode('responding');
+    }
+
+    if (type === 'response.audio_transcript.done' || type === 'response.output_audio_transcript.done') {
+      if (data.transcript) {
+        responseTextRef.current = data.transcript;
+        setStreamText(data.transcript);
+      }
+    }
+
+    if (type === 'response.done' || type === 'response.completed') {
+      modelRespondingRef.current = false;
+      const text = responseTextRef.current.trim();
+      if (text) {
+        setConversation((items) => [...items, { role: 'assistant', text }].slice(-4));
+      }
+      if (closeRealtimeOnDoneRef.current) {
+        window.setTimeout(() => {
+          realtimeRef.current?.close();
+          realtimeRef.current = null;
+          closeRealtimeOnDoneRef.current = false;
+          setMode(comparisonRef.current ? 'comparison' : 'background');
+        }, 600);
+      } else {
+        setMode('listening');
+      }
+    }
+
+    if (type === 'error') {
+      setStreamText('Realtime voice is unavailable right now. You can still type your automotive request below.');
+      setMode(comparisonRef.current ? 'comparison' : 'background');
+    }
+  };
+
+  const configureRealtimeSession = (socket) => {
+    socket.send(JSON.stringify({
+      type: 'session.update',
+      session: {
+        instructions: REALTIME_INSTRUCTIONS,
+        modalities: ['audio', 'text'],
+        voice: 'alloy',
+        input_audio_format: 'pcm16',
+        output_audio_format: 'pcm16',
+        input_audio_transcription: { model: 'whisper-1' },
+        turn_detection: {
+          type: 'server_vad',
+          threshold: 0.5,
+          prefix_padding_ms: 300,
+          silence_duration_ms: 550,
+          create_response: true,
+          interrupt_response: true,
+        },
+      },
+    }));
+  };
+
+  const openRealtimeSocket = async ({ closeOnDone = false } = {}) => {
+    const existing = realtimeRef.current;
+    if (existing?.readyState === WebSocket.OPEN) {
+      closeRealtimeOnDoneRef.current = closeOnDone;
+      return existing;
+    }
+
+    const sessionResponse = await fetch(`${API_BASE}/at-motors/realtime-session`);
+    const session = await sessionResponse.json().catch(() => ({}));
+    if (!sessionResponse.ok || !session.url) throw new Error(session.error || 'Realtime session is not configured');
+
+    return new Promise((resolve, reject) => {
+      const socket = new WebSocket(session.url);
+      realtimeRef.current = socket;
+      closeRealtimeOnDoneRef.current = closeOnDone;
+
+      socket.onopen = () => {
+        configureRealtimeSession(socket);
+        resolve(socket);
+      };
+      socket.onmessage = handleRealtimeEvent;
+      socket.onerror = () => reject(new Error('Realtime WebSocket failed'));
+      socket.onclose = () => {
+        if (realtimeRef.current === socket) realtimeRef.current = null;
+      };
+    });
   };
 
   const speak = (text) => {
@@ -205,94 +511,28 @@ function App() {
     step();
   };
 
-  const askRealtime = async (message) => {
-    const sessionResponse = await fetch(`${API_BASE}/at-motors/realtime-session`);
-    const session = await sessionResponse.json().catch(() => ({}));
-    if (!sessionResponse.ok || !session.url) throw new Error(session.error || 'Realtime session is not configured');
-
-    return new Promise((resolve, reject) => {
-      let finalText = '';
-      let settled = false;
-      const socket = new WebSocket(session.url);
-      realtimeRef.current = socket;
-      const timeout = window.setTimeout(() => {
-        if (!settled) {
-          settled = true;
-          socket.close();
-          reject(new Error('Realtime response timed out'));
-        }
-      }, 30000);
-
-      const finish = () => {
-        if (settled) return;
-        settled = true;
-        window.clearTimeout(timeout);
-        socket.close();
-        resolve(finalText.trim());
-      };
-
-      socket.onopen = () => {
-        socket.send(JSON.stringify({
-          type: 'session.update',
-          session: {
-            instructions: 'You are AT MOTORS luxury automotive AI concierge. Only answer automotive, car comparison, ownership, finance, test-drive, showroom, and AT MOTORS questions. If asked anything outside automotive, politely refuse and redirect to cars. Be concise, premium, and helpful. If comparing cars, focus on performance, comfort, ownership fit, price tier, and next viewing step.',
-            modalities: ['text'],
-            turn_detection: {
-              type: 'server_vad',
-              threshold: 0.5,
-              silence_duration_ms: 500,
-              prefix_padding_ms: 300,
-            },
-          },
-        }));
-        socket.send(JSON.stringify({
-          type: 'conversation.item.create',
-          item: {
-            type: 'message',
-            role: 'user',
-            content: [{ type: 'input_text', text: message }],
-          },
-        }));
-        socket.send(JSON.stringify({
-          type: 'response.create',
-          response: {
-            modalities: ['text'],
-            instructions: 'Answer as a premium automotive concierge. Stay strictly on automotive topics. Do not mention setup, Bing, grounding, or Azure.',
-          },
-        }));
-      };
-
-      socket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        const delta = data.delta || data.text || data.transcript || '';
-        if (
-          data.type === 'response.text.delta' ||
-          data.type === 'response.output_text.delta' ||
-          data.type === 'response.audio_transcript.delta'
-        ) {
-          finalText += delta;
-          setStreamText(finalText);
-          setMode('responding');
-        }
-        if (data.type === 'response.done' || data.type === 'response.completed') finish();
-        if (data.type === 'error') {
-          if (!settled) {
-            settled = true;
-            window.clearTimeout(timeout);
-            socket.close();
-            reject(new Error(data.error?.message || 'Realtime API error'));
-          }
-        }
-      };
-
-      socket.onerror = () => {
-        if (!settled) {
-          settled = true;
-          window.clearTimeout(timeout);
-          reject(new Error('Realtime WebSocket failed'));
-        }
-      };
-    });
+  const sendRealtimeTextMessage = async (message) => {
+    stopPlayback();
+    responseTextRef.current = '';
+    responseHasAudioTranscriptRef.current = false;
+    setStreamText('');
+    setMode('responding');
+    const socket = await openRealtimeSocket({ closeOnDone: !mediaStreamRef.current });
+    socket.send(JSON.stringify({
+      type: 'conversation.item.create',
+      item: {
+        type: 'message',
+        role: 'user',
+        content: [{ type: 'input_text', text: message }],
+      },
+    }));
+    socket.send(JSON.stringify({
+      type: 'response.create',
+      response: {
+        modalities: ['audio', 'text'],
+        instructions: REALTIME_INSTRUCTIONS,
+      },
+    }));
   };
 
   const ask = async (message) => {
@@ -315,8 +555,7 @@ function App() {
     setInput('');
 
     try {
-      const realtimeReply = await askRealtime(value);
-      streamAnswer(realtimeReply || 'I am ready to continue the AT MOTORS concierge session.');
+      await sendRealtimeTextMessage(value);
     } catch {
       try {
         const response = await fetch(`${API_BASE}/at-motors/chat`, {
@@ -336,43 +575,29 @@ function App() {
 
   const startLiveSession = async () => {
     if (window.speechSynthesis?.speaking) window.speechSynthesis.cancel();
-    setMode('listening');
+    setMode('connecting');
     setStreamText('');
     setRecognized('');
-    await startAnalyser().catch(() => {});
-
-    if (!SpeechRecognition) {
-      setStreamText('Speech recognition is not available in this browser. Type your request below.');
-      return;
-    }
-
-    recognitionRef.current?.stop();
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'en-US';
-    recognition.interimResults = true;
-    recognition.continuous = false;
-    recognition.onresult = (event) => {
-      const transcript = Array.from(event.results).map((result) => result[0].transcript).join('');
-      setRecognized(transcript);
-      if (event.results[event.results.length - 1].isFinal) {
-        stopAnalyser();
-        ask(transcript);
-      }
-    };
-    recognition.onend = () => stopAnalyser();
-    recognition.onerror = () => {
-      stopAnalyser();
+    lastUserTranscriptRef.current = '';
+    try {
+      const socket = await openRealtimeSocket({ closeOnDone: false });
+      await startMicStreaming(socket);
+      setMode('listening');
+      setStreamText('Listening. Ask about AT MOTORS vehicles, pricing, test drives, or comparisons.');
+    } catch {
+      stopMicStreaming();
+      setStreamText('Realtime voice is unavailable right now. You can still type your automotive request below.');
       setMode('background');
-    };
-    recognitionRef.current = recognition;
-    recognition.start();
+    }
   };
 
   const endSession = () => {
-    recognitionRef.current?.stop();
     realtimeRef.current?.close();
     window.speechSynthesis?.cancel();
-    stopAnalyser();
+    stopMicStreaming();
+    stopPlayback();
+    playbackContextRef.current?.close().catch(() => {});
+    playbackContextRef.current = null;
     setMode('background');
     setComparison(null);
     setStreamText('');
@@ -394,7 +619,7 @@ function App() {
           <button className="orb" onClick={startLiveSession} aria-label="Talk to AI">
             <i />
             <b />
-            <span>{mode === 'listening' ? 'Listening' : mode === 'responding' ? 'Streaming' : 'Talk to AI'}</span>
+            <span>{mode === 'connecting' ? 'Connecting' : mode === 'listening' ? 'Listening' : mode === 'responding' ? 'Streaming' : 'Talk to AI'}</span>
           </button>
           <div className="transcript">
             <div className="chatGlow">
