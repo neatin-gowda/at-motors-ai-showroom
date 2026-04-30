@@ -17,6 +17,21 @@ Keep answers polished, concise, and sales-useful.
 When comparison is requested, compare performance, comfort, ownership fit, budget tier, and appointment next step.
 Never invent exact inventory availability.`;
 
+function getRealtimeWebSocketUrl() {
+  const endpoint = (process.env.AZURE_REALTIME_ENDPOINT || process.env.AZURE_OPENAI_ENDPOINT || '').replace(/\/+$/, '');
+  const key = process.env.AZURE_REALTIME_API_KEY || process.env.AZURE_OPENAI_API_KEY;
+  const deployment = process.env.AZURE_REALTIME_DEPLOYMENT;
+  const apiVersion = process.env.AZURE_REALTIME_API_VERSION || '2025-04-01-preview';
+  if (!endpoint || !key || !deployment) return null;
+
+  const host = endpoint.replace(/^https?:\/\//, '');
+  const queryKey = encodeURIComponent(key);
+  if (apiVersion.includes('preview')) {
+    return `wss://${host}/openai/realtime?api-version=${encodeURIComponent(apiVersion)}&deployment=${encodeURIComponent(deployment)}&api-key=${queryKey}`;
+  }
+  return `wss://${host}/openai/v1/realtime?model=${encodeURIComponent(deployment)}&api-key=${queryKey}`;
+}
+
 async function callAzureOpenAI(messages) {
   const endpoint = (process.env.AZURE_OPENAI_ENDPOINT || '').replace(/\/+$/, '');
   const key = process.env.AZURE_OPENAI_API_KEY;
@@ -103,6 +118,21 @@ app.http('health', {
   authLevel: 'anonymous',
   route: 'health',
   handler: async () => ok({ status: 'ok', app: 'at-motors-ai-showroom', time: new Date().toISOString() }),
+});
+
+app.http('realtime-session', {
+  methods: ['GET'],
+  authLevel: 'anonymous',
+  route: 'at-motors/realtime-session',
+  handler: async () => {
+    const url = getRealtimeWebSocketUrl();
+    if (!url) return serverError('Realtime environment variables are not configured.');
+    return ok({
+      url,
+      deployment: process.env.AZURE_REALTIME_DEPLOYMENT,
+      apiVersion: process.env.AZURE_REALTIME_API_VERSION || '2025-04-01-preview',
+    });
+  },
 });
 
 app.http('documents-list', {
