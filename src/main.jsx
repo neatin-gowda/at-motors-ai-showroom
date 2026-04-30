@@ -6,37 +6,32 @@ const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 const REALTIME_SAMPLE_RATE = 24000;
 const REALTIME_INSTRUCTIONS = 'You are AT MOTORS luxury automotive AI concierge. Only answer automotive, car comparison, ownership, finance, test-drive, showroom, and AT MOTORS questions. If asked anything outside automotive, politely refuse and redirect to cars. Be concise, premium, and helpful. If comparing cars, focus on performance, comfort, ownership fit, price tier, and next viewing step. Do not mention setup, Bing, grounding, environment variables, or Azure.';
 
-const cars = [
+const showroomScenes = [
   {
     maker: 'Ferrari',
-    model: 'Rosso Atelier',
-    type: 'Supercar',
-    price: 'AED 1.18M',
-    sprint: '2.9s',
-    speed: '340 km/h',
-    engine: 'V8 Hybrid',
+    label: 'Italian performance atelier',
     img: 'https://images.unsplash.com/photo-1556516731-779d3492975b?auto=format&fit=crop&q=88&w=2200',
   },
   {
     maker: 'Ford',
-    model: 'Mustang GT Blackline',
-    type: 'Performance Coupe',
-    price: 'AED 299K',
-    sprint: '4.3s',
-    speed: '250 km/h',
-    engine: '5.0L V8',
+    label: 'Mustang performance studio',
     img: 'https://images.unsplash.com/photo-1561535743-c82c241502d5?auto=format&fit=crop&q=88&w=2200',
   },
   {
     maker: 'Maserati',
-    model: 'Nero GranTurismo',
-    type: 'Grand Tourer',
-    price: 'AED 690K',
-    sprint: '3.5s',
-    speed: '320 km/h',
-    engine: 'Twin-Turbo V6',
+    label: 'Grand touring lounge',
     img: 'https://images.unsplash.com/photo-1756548843479-3783100b3447?auto=format&fit=crop&q=88&w=2200',
   },
+];
+
+const automotiveTerms = [
+  'car', 'cars', 'auto', 'automotive', 'vehicle', 'vehicles', 'motor', 'motors',
+  'engine', 'speed', 'drive', 'driving', 'luxury', 'supercar', 'sedan', 'suv',
+  'coupe', 'convertible', 'horsepower', 'hp', 'torque', '0-100', '0 to 100',
+  'price', 'finance', 'booking', 'viewing', 'test drive', 'compare', 'range',
+  'battery', 'hybrid', 'ev', 'electric', 'mustang', 'ferrari', 'ford', 'maserati',
+  'deepal', 'porsche', 'lucid', 'mercedes', 'bmw', 'audi', 'tesla', 'lamborghini',
+  'bentley', 'rolls', 'aston martin', 'mclaren', 'range rover', 'lexus',
 ];
 
 function bytesToBase64(bytes) {
@@ -99,71 +94,68 @@ function Icon({ name }) {
     mic: <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />,
     end: <path d="M21 15.4c-2.2-1.2-5.1-1.9-9-1.9s-6.8.7-9 1.9l2.6 4.2 3.3-1.7v-2.2c.9-.1 1.9-.2 3.1-.2s2.2.1 3.1.2v2.2l3.3 1.7 2.6-4.2Z" />,
     mute: <><path d="M11 5 6 9H3v6h3l5 4V5Z" /><path d="m23 9-6 6" /><path d="m17 9 6 6" /></>,
-    live: <path d="M12 6v6l4 2" />,
+    live: <><path d="M4 12a8 8 0 0 1 16 0" /><path d="M8 12a4 4 0 0 1 8 0" /><path d="M12 12h.01" /></>,
+    download: <><path d="M12 3v11" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></>,
   };
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>;
 }
 
-function parseComparison(message) {
+function isComparisonRequest(message) {
   const text = message.toLowerCase();
-  const found = cars.filter((car) => text.includes(car.maker.toLowerCase()) || text.includes(car.model.toLowerCase().split(' ')[0]));
-  const asksCompare = text.includes('compare') || text.includes(' vs ') || text.includes('versus') || found.length > 1;
-  if (!asksCompare) return null;
-  const left = found[0] || cars[0];
-  const right = found.find((car) => car.maker !== left.maker) || cars.find((car) => car.maker !== left.maker) || cars[1];
-  return { left, right };
+  return /\b(compare|comparison|versus|vs\.?|against|between)\b/i.test(text);
 }
 
 function isAutomotiveTopic(message) {
   const text = message.toLowerCase();
-  return [
-    'car', 'cars', 'auto', 'automotive', 'vehicle', 'vehicles', 'motor', 'motors',
-    'engine', 'speed', 'drive', 'driving', 'luxury', 'supercar', 'sedan', 'suv',
-    'coupe', 'convertible', 'horsepower', 'hp', 'torque', '0-100', '0 to 100',
-    'price', 'finance', 'booking', 'viewing', 'test drive', 'compare',
-    ...cars.flatMap((car) => [car.maker.toLowerCase(), car.model.toLowerCase().split(' ')[0]]),
-  ].some((term) => text.includes(term));
+  return automotiveTerms.some((term) => text.includes(term));
 }
 
-function ComparisonStage({ comparison, sources }) {
+function ComparisonStage({ comparison, loading, onDownload }) {
   if (!comparison) return null;
-  const { left, right } = comparison;
-  const rows = [
-    ['Engine', left.engine, right.engine],
-    ['Top Speed', left.speed, right.speed],
-    ['0-100 km/h', left.sprint, right.sprint],
-    ['Price', left.price, right.price],
-  ];
+  const vehicles = comparison.vehicles || [];
+  const rows = comparison.rows || [];
+  const left = vehicles[0];
+  const right = vehicles[1];
+  if (!left || !right) return null;
 
   return (
-    <section className="compareStage">
+    <section className={`compareStage ${loading ? 'isUpdating' : ''}`}>
+      <div className="compareIntro">
+        <span>AI comparison dossier</span>
+        <h2>{comparison.title}</h2>
+        {comparison.summary && <p>{comparison.summary}</p>}
+      </div>
       {[left, right].map((car, index) => (
-        <article className={`comparePanel ${index === 0 ? 'fromLeft' : 'fromRight'}`} key={car.model}>
-          <img src={car.img} alt={`${car.maker} ${car.model}`} />
+        <article className={`comparePanel ${index === 0 ? 'fromLeft' : 'fromRight'}`} key={`${car.name}-${index}`}>
+          <img src={car.imageUrl} alt={car.name} />
+          <div className="motionLine" />
           <div className="compareTitle">
             <span>{car.type}</span>
-            <h2>{car.maker}</h2>
+            <h3>{car.brand}</h3>
             <p>{car.model}</p>
+            {car.highlight && <small>{car.highlight}</small>}
           </div>
         </article>
       ))}
       <div className="specGrid">
         <div className="specHeader">
           <span>Specification</span>
-          <b>{left.maker}</b>
-          <em>{right.maker}</em>
+          <b>{left.brand}</b>
+          <em>{right.brand}</em>
         </div>
-        {rows.map(([label, a, b]) => (
-          <div key={label}>
-            <span>{label}</span>
-            <b>{a}</b>
-            <em>{b}</em>
+        {rows.map((row) => (
+          <div key={row.label}>
+            <span>{row.label}</span>
+            <b>{row.values?.[0] || 'Not verified'}</b>
+            <em>{row.values?.[1] || 'Not verified'}</em>
           </div>
         ))}
       </div>
+      {comparison.recommendation && <p className="recommendation">{comparison.recommendation}</p>}
       <div className="sourceStrip">
-        <strong>{left.maker} vs {right.maker}</strong>
-        {sources.length ? sources.slice(0, 3).map((source) => <a href={source.url} key={source.url} target="_blank" rel="noreferrer">{source.name}</a>) : <span>Realtime model active</span>}
+        <strong>{left.brand} vs {right.brand}</strong>
+        {loading ? <span>Updating dossier</span> : (comparison.sources || []).length ? (comparison.sources || []).slice(0, 3).map((source) => <a href={source.url} key={source.url} target="_blank" rel="noreferrer">{source.name}</a>) : <span>AI generated comparison</span>}
+        <button type="button" onClick={onDownload}><Icon name="download" /> Report</button>
       </div>
     </section>
   );
@@ -178,7 +170,7 @@ function App() {
   const [recognized, setRecognized] = useState('');
   const [conversation, setConversation] = useState([]);
   const [comparison, setComparison] = useState(null);
-  const [sources, setSources] = useState([]);
+  const [comparisonLoading, setComparisonLoading] = useState(false);
   const [input, setInput] = useState('');
 
   const realtimeRef = useRef(null);
@@ -198,10 +190,12 @@ function App() {
   const responseHasAudioTranscriptRef = useRef(false);
   const modelRespondingRef = useRef(false);
   const lastUserTranscriptRef = useRef('');
-  const background = comparison?.left || cars[activeCar];
+  const chatGlowRef = useRef(null);
+  const stageRef = useRef(null);
+  const backgroundImage = comparison?.vehicles?.[0]?.imageUrl || showroomScenes[activeCar].img;
 
   useEffect(() => {
-    const timer = window.setInterval(() => setActiveCar((index) => (index + 1) % cars.length), 7000);
+    const timer = window.setInterval(() => setActiveCar((index) => (index + 1) % showroomScenes.length), 7000);
     return () => window.clearInterval(timer);
   }, []);
 
@@ -216,6 +210,11 @@ function App() {
   useEffect(() => {
     comparisonRef.current = comparison;
   }, [comparison]);
+
+  useEffect(() => {
+    const panel = chatGlowRef.current;
+    if (panel) panel.scrollTo({ top: panel.scrollHeight, behavior: 'smooth' });
+  }, [conversation, recognized, streamText]);
 
   const stopPlayback = () => {
     playbackSourcesRef.current.forEach((source) => {
@@ -327,12 +326,7 @@ function App() {
     lastUserTranscriptRef.current = value;
     setRecognized(value);
     setConversation((items) => [...items, { role: 'user', text: value }].slice(-4));
-    if (isAutomotiveTopic(value)) {
-      setComparison(parseComparison(value));
-      setSources([]);
-    } else {
-      setComparison(null);
-    }
+    if (isAutomotiveTopic(value) && isComparisonRequest(value)) void loadComparison(value);
   };
 
   const handleRealtimeEvent = (event) => {
@@ -480,6 +474,59 @@ function App() {
     });
   };
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      openRealtimeSocket({ closeOnDone: false }).catch(() => {});
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const loadComparison = async (message) => {
+    setComparisonLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/at-motors/comparison`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.comparison) throw new Error(data.error || 'Comparison failed');
+      setComparison(data.comparison);
+      window.setTimeout(() => {
+        stageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 180);
+    } catch {
+      setStreamText('I can keep the current comparison visible. Ask again with two specific models when you want a fresh dossier.');
+    } finally {
+      setComparisonLoading(false);
+    }
+  };
+
+  const downloadComparisonReport = () => {
+    if (!comparison) return;
+    const vehicles = comparison.vehicles || [];
+    const rows = comparison.rows || [];
+    const lines = [
+      'AT MOTORS AI COMPARISON REPORT',
+      comparison.title || '',
+      '',
+      comparison.summary || '',
+      comparison.recommendation || '',
+      '',
+      ...rows.map((row) => `${row.label}: ${vehicles[0]?.brand || 'Vehicle A'} - ${row.values?.[0] || 'Not verified'} | ${vehicles[1]?.brand || 'Vehicle B'} - ${row.values?.[1] || 'Not verified'}`),
+      '',
+      'Sources:',
+      ...(comparison.sources || []).map((source) => `${source.name}: ${source.url}`),
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${(comparison.title || 'at-motors-comparison').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.txt`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
   const speak = (text) => {
     if (muted || !window.speechSynthesis) {
       setMode(comparison ? 'comparison' : 'background');
@@ -539,20 +586,17 @@ function App() {
     const value = message.trim();
     if (!value) return;
     if (!isAutomotiveTopic(value)) {
-      setComparison(null);
-      setSources([]);
       setRecognized(value);
       setConversation((items) => [...items, { role: 'user', text: value }].slice(-4));
       streamAnswer('I can only assist with AT MOTORS, cars, automotive comparisons, ownership, finance, test drives, and showroom bookings.');
       return;
     }
-    const parsed = parseComparison(value);
+    const shouldCompare = isComparisonRequest(value);
     setRecognized(value);
-    setComparison(parsed);
-    setSources([]);
     setConversation((items) => [...items, { role: 'user', text: value }].slice(-4));
-    setMode(parsed ? 'comparison' : 'responding');
+    setMode(comparison || shouldCompare ? 'comparison' : 'responding');
     setInput('');
+    if (shouldCompare) void loadComparison(value);
 
     try {
       await sendRealtimeTextMessage(value);
@@ -565,7 +609,6 @@ function App() {
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || 'Chat failed');
-        setSources(data.sources || []);
         streamAnswer(data.reply);
       } catch {
         streamAnswer('I can compare these models on performance, comfort, ownership fit, price tier, and viewing next steps. For AT MOTORS, I would start with driving style, budget tier, and preferred test-drive timing.');
@@ -607,14 +650,14 @@ function App() {
 
   return (
     <main className={`cockpit mode-${mode} ${comparison ? 'has-comparison' : ''}`}>
-      <div className="kenBurns" style={{ backgroundImage: `url(${background.img})` }} />
+      <div className="kenBurns" style={{ backgroundImage: `url(${backgroundImage})` }} />
       <div className="shade" />
       <header className="brand">
         <span>AT</span>
         <strong>MOTORS</strong>
       </header>
 
-      <section className="stage">
+      <section className="stage" ref={stageRef}>
         <div className="orbDock">
           <button className="orb" onClick={startLiveSession} aria-label="Talk to AI">
             <i />
@@ -622,7 +665,7 @@ function App() {
             <span>{mode === 'connecting' ? 'Connecting' : mode === 'listening' ? 'Listening' : mode === 'responding' ? 'Streaming' : 'Talk to AI'}</span>
           </button>
           <div className="transcript">
-            <div className="chatGlow">
+            <div className="chatGlow" ref={chatGlowRef}>
               {conversation.slice(-2).map((item, index) => (
                 <p className={`chatLine ${item.role}`} key={`${item.role}-${index}-${item.text.slice(0, 12)}`}>{item.text}</p>
               ))}
@@ -632,12 +675,12 @@ function App() {
           </div>
         </div>
 
-        <ComparisonStage comparison={comparison} sources={sources} />
+        <ComparisonStage comparison={comparison} loading={comparisonLoading} onDownload={downloadComparisonReport} />
 
-        {mode === 'background' && (
+        {mode === 'background' && !comparison && (
           <div className="heroCopy">
             <p>Luxury automotive intelligence</p>
-            <h1>Ask. Compare. Decide.</h1>
+            <h1>Curated automotive clarity.</h1>
           </div>
         )}
       </section>
@@ -649,8 +692,8 @@ function App() {
 
       <footer className="liveFooter">
         <div className="liveDot"><Icon name="live" /> Live</div>
-        <button onClick={() => setMuted((value) => !value)}><Icon name="mute" /> {muted ? 'Unmute' : 'Mute'}</button>
-        <button onClick={endSession}><Icon name="end" /> End</button>
+        <button className={muted ? 'isMuted' : ''} onClick={() => setMuted((value) => !value)}><Icon name="mute" /> {muted ? 'Unmute' : 'Mute'}</button>
+        <button className="endButton" onClick={endSession}><Icon name="end" /> End</button>
       </footer>
     </main>
   );
