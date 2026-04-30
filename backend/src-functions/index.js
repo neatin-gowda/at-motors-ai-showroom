@@ -45,6 +45,30 @@ async function callAzureOpenAI(messages) {
   return data?.choices?.[0]?.message?.content || null;
 }
 
+async function searchCarSources(query) {
+  const key = process.env.BING_SEARCH_KEY;
+  const endpoint = (process.env.BING_SEARCH_ENDPOINT || 'https://api.bing.microsoft.com/v7.0/search').replace(/\/+$/, '');
+  if (!key) return [];
+
+  const url = `${endpoint}?q=${encodeURIComponent(query)}&count=5&mkt=en-US&responseFilter=Webpages`;
+  const response = await fetch(url, {
+    headers: { 'Ocp-Apim-Subscription-Key': key },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data?.error?.message || `Bing Search failed with ${response.status}`);
+
+  return (data.webPages?.value || []).slice(0, 5).map((item) => ({
+    name: item.name,
+    url: item.url,
+    snippet: item.snippet,
+  }));
+}
+
+function needsLiveCarSearch(message) {
+  const text = String(message || '').toLowerCase();
+  return text.includes('compare') || text.includes(' vs ') || text.includes('versus') || text.includes('top speed') || text.includes('price');
+}
+
 function fallbackReply(message, contextText) {
   const text = String(message || '').toLowerCase();
   if (text.includes('book') || text.includes('viewing') || text.includes('test')) {
@@ -140,9 +164,22 @@ app.http('chat', {
       if (!message) return badRequest('Message is required.');
 
       const docContext = await getDocumentContext();
+      let sources = [];
+      if (needsLiveCarSearch(message)) {
+        sources = await searchCarSources(`${message} official specs engine top speed 0-100 price`).catch((error) => {
+          log(context, 'warn', 'Bing grounding failed', { error: error.message });
+          return [];
+        });
+      }
+
+      const searchContext = sources.length
+        ? `Live search sources:\n${sources.map((source, index) => `[${index + 1}] ${source.name}\n${source.url}\n${source.snippet}`).join('\n\n')}`
+        : 'No live search sources were available. Do not present unverified specs as live verified data.';
+
       const messages = [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'system', content: docContext.text ? `Showroom context:\n${docContext.text}` : 'No uploaded showroom context is available yet.' },
+        { role: 'system', content: searchContext },
         ...history.map((item) => ({
           role: item.from === 'user' ? 'user' : 'assistant',
           content: trimText(item.text, 1200),
@@ -155,7 +192,7 @@ app.http('chat', {
       if (!reply) reply = fallbackReply(message, docContext.text);
 
       log(context, 'info', 'Chat answered', { source, documentsUsed: docContext.names.length });
-      return ok({ reply, source, documentsUsed: docContext.names });
+      return ok({ reply, source, documentsUsed: docContext.names, sources });
     } catch (error) {
       log(context, 'error', 'Chat failed', { error: error.message });
       return serverError('Could not answer with the AT MOTORS concierge.');
