@@ -90,7 +90,7 @@ function ComparisonStage({ comparison, answer, sources }) {
       </div>
       <div className="sourceStrip">
         <strong>Verified data</strong>
-        {sources.length ? sources.slice(0, 3).map((source) => <a href={source.url} key={source.url} target="_blank" rel="noreferrer">{source.name}</a>) : <span>Connect Bing grounding for live citations</span>}
+        {sources.length ? sources.slice(0, 3).map((source) => <a href={source.url} key={source.url} target="_blank" rel="noreferrer">{source.name}</a>) : <span>Realtime model active</span>}
       </div>
       {answer && <p className="comparisonAnswer">{answer}</p>}
     </section>
@@ -109,6 +109,7 @@ function App() {
   const [input, setInput] = useState('');
 
   const recognitionRef = useRef(null);
+  const realtimeRef = useRef(null);
   const analyserRef = useRef(null);
   const rafRef = useRef(null);
   const audioContextRef = useRef(null);
@@ -185,6 +186,96 @@ function App() {
     step();
   };
 
+  const askRealtime = async (message) => {
+    const sessionResponse = await fetch(`${API_BASE}/at-motors/realtime-session`);
+    const session = await sessionResponse.json().catch(() => ({}));
+    if (!sessionResponse.ok || !session.url) throw new Error(session.error || 'Realtime session is not configured');
+
+    return new Promise((resolve, reject) => {
+      let finalText = '';
+      let settled = false;
+      const socket = new WebSocket(session.url);
+      realtimeRef.current = socket;
+      const timeout = window.setTimeout(() => {
+        if (!settled) {
+          settled = true;
+          socket.close();
+          reject(new Error('Realtime response timed out'));
+        }
+      }, 30000);
+
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeout);
+        socket.close();
+        resolve(finalText.trim());
+      };
+
+      socket.onopen = () => {
+        socket.send(JSON.stringify({
+          type: 'session.update',
+          session: {
+            instructions: 'You are AT MOTORS luxury automotive AI concierge. Be concise, premium, and helpful. If comparing cars, focus on performance, comfort, ownership fit, price tier, and next viewing step.',
+            modalities: ['text'],
+            turn_detection: {
+              type: 'server_vad',
+              threshold: 0.5,
+              silence_duration_ms: 500,
+              prefix_padding_ms: 300,
+            },
+          },
+        }));
+        socket.send(JSON.stringify({
+          type: 'conversation.item.create',
+          item: {
+            type: 'message',
+            role: 'user',
+            content: [{ type: 'input_text', text: message }],
+          },
+        }));
+        socket.send(JSON.stringify({
+          type: 'response.create',
+          response: {
+            modalities: ['text'],
+            instructions: 'Answer as a premium automotive concierge. Do not mention setup, Bing, grounding, or Azure.',
+          },
+        }));
+      };
+
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        const delta = data.delta || data.text || data.transcript || '';
+        if (
+          data.type === 'response.text.delta' ||
+          data.type === 'response.output_text.delta' ||
+          data.type === 'response.audio_transcript.delta'
+        ) {
+          finalText += delta;
+          setStreamText(finalText);
+          setMode('responding');
+        }
+        if (data.type === 'response.done' || data.type === 'response.completed') finish();
+        if (data.type === 'error') {
+          if (!settled) {
+            settled = true;
+            window.clearTimeout(timeout);
+            socket.close();
+            reject(new Error(data.error?.message || 'Realtime API error'));
+          }
+        }
+      };
+
+      socket.onerror = () => {
+        if (!settled) {
+          settled = true;
+          window.clearTimeout(timeout);
+          reject(new Error('Realtime WebSocket failed'));
+        }
+      };
+    });
+  };
+
   const ask = async (message) => {
     const value = message.trim();
     if (!value) return;
@@ -196,17 +287,22 @@ function App() {
     setInput('');
 
     try {
-      const response = await fetch(`${API_BASE}/at-motors/chat`, {
+      const realtimeReply = await askRealtime(value);
+      streamAnswer(realtimeReply || 'I am ready to continue the AT MOTORS realtime session.');
+    } catch {
+      try {
+        const response = await fetch(`${API_BASE}/at-motors/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: value, history: [] }),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || 'Chat failed');
-      setSources(data.sources || []);
-      streamAnswer(data.reply);
-    } catch {
-      streamAnswer('I can compare these models on performance, comfort, ownership fit, price tier, and viewing next steps. Connect Azure OpenAI and Bing grounding for live verified specifications.');
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'Chat failed');
+        setSources(data.sources || []);
+        streamAnswer(data.reply);
+      } catch {
+        streamAnswer('I can compare these models on performance, comfort, ownership fit, price tier, and viewing next steps. Please check the realtime and chat environment variables in Azure.');
+      }
     }
   };
 
@@ -246,6 +342,7 @@ function App() {
 
   const endSession = () => {
     recognitionRef.current?.stop();
+    realtimeRef.current?.close();
     window.speechSynthesis?.cancel();
     stopAnalyser();
     setMode('background');
