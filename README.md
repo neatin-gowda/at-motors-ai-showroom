@@ -1,4 +1,4 @@
-# AT MOTORS AI Voice
+# AT MOTORS AI Showroom
 
 A luxury automotive landing page and AI voice-agent showroom for AT MOTORS.
 
@@ -14,12 +14,14 @@ The project is ready to push into a new GitHub repo and deploy to Azure Static W
 - Browser voice output with synced listening, thinking, streaming, and speaking animation.
 - Automatic inline insight popup after a voice or text ask.
 - Two-vehicle comparison panel for comparison asks and action panels for booking, finance, daily-use, or other requests.
+- Premium single-screen cockpit UI with a voice-reactive generative orb.
+- Optional Bing grounding for live comparison citations.
 - Azure Functions backend.
 - Cosmos DB document-context store.
 - Azure OpenAI chat endpoint using uploaded showroom context.
 - Optional lead-capture API endpoint.
 
-## Project Structures
+## Project Structure
 
 ```text
 at-motors-ai-showroom/
@@ -66,8 +68,10 @@ Update `backend/local.settings.json` with:
   "COSMOS_DB": "atmotors",
   "AZURE_OPENAI_ENDPOINT": "https://YOUR-AZURE-OPENAI-RESOURCE.openai.azure.com",
   "AZURE_OPENAI_API_KEY": "YOUR_AZURE_OPENAI_KEY",
-  "AZURE_OPENAI_DEPLOYMENT": "gpt-4o-mini",
-  "AZURE_OPENAI_API_VERSION": "2024-10-21"
+  "AZURE_OPENAI_DEPLOYMENT": "gpt-4.1-mini",
+  "AZURE_OPENAI_API_VERSION": "2024-10-21",
+  "BING_SEARCH_ENDPOINT": "https://api.bing.microsoft.com/v7.0/search",
+  "BING_SEARCH_KEY": "YOUR_BING_SEARCH_KEY"
 }
 ```
 
@@ -192,6 +196,8 @@ AZURE_OPENAI_ENDPOINT
 AZURE_OPENAI_API_KEY
 AZURE_OPENAI_DEPLOYMENT
 AZURE_OPENAI_API_VERSION
+BING_SEARCH_ENDPOINT
+BING_SEARCH_KEY
 ```
 
 Recommended values:
@@ -199,6 +205,7 @@ Recommended values:
 ```text
 COSMOS_DB=atmotors
 AZURE_OPENAI_API_VERSION=2024-10-21
+BING_SEARCH_ENDPOINT=https://api.bing.microsoft.com/v7.0/search
 ```
 
 8. Push to `main`. GitHub Actions will deploy the frontend and backend.
@@ -217,5 +224,17 @@ After deployment:
 
 - Speech-to-text uses the browser `SpeechRecognition` / `webkitSpeechRecognition` API. It works best in Chrome and Edge over HTTPS or localhost.
 - Text-to-speech uses the browser `speechSynthesis` API.
-- After speech is recognized, the app automatically opens an inline AT MOTORS insight panel. Comparison asks show a two-vehicle panel; other asks show a tailored action/recommendation panel.
+- The orb motion uses Web Audio frequency analysis from the microphone and maps the signal into CSS variable `--voice-level`.
+- Comparison asks open a horizontal side-by-side stage with source links when Bing grounding is configured.
 - If Azure OpenAI settings are missing, the backend returns a useful fallback response so the UI still works.
+
+## Realtime Voice Upgrade Notes
+
+The current deployable app uses browser speech APIs plus Azure OpenAI chat because it works with `gpt-4.1-mini`.
+
+For true Azure GPT Realtime or Voice Live:
+
+- Deploy a realtime model such as `gpt-realtime`, `gpt-realtime-mini`, `gpt-4o-realtime-preview`, or `gpt-4o-mini-realtime-preview` in a supported region.
+- `gpt-4.1-mini` is not a realtime speech model.
+- Voice Live supports server VAD and barge-in through `turn_detection.interrupt_response`.
+- For browser apps, Microsoft recommends WebRTC for lowest latency.
