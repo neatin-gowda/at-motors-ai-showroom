@@ -57,7 +57,18 @@ function parseComparison(message) {
   return { left, right };
 }
 
-function ComparisonStage({ comparison, answer, sources }) {
+function isAutomotiveTopic(message) {
+  const text = message.toLowerCase();
+  return [
+    'car', 'cars', 'auto', 'automotive', 'vehicle', 'vehicles', 'motor', 'motors',
+    'engine', 'speed', 'drive', 'driving', 'luxury', 'supercar', 'sedan', 'suv',
+    'coupe', 'convertible', 'horsepower', 'hp', 'torque', '0-100', '0 to 100',
+    'price', 'finance', 'booking', 'viewing', 'test drive', 'compare',
+    ...cars.flatMap((car) => [car.maker.toLowerCase(), car.model.toLowerCase().split(' ')[0]]),
+  ].some((term) => text.includes(term));
+}
+
+function ComparisonStage({ comparison, sources }) {
   if (!comparison) return null;
   const { left, right } = comparison;
   const rows = [
@@ -80,6 +91,11 @@ function ComparisonStage({ comparison, answer, sources }) {
         </article>
       ))}
       <div className="specGrid">
+        <div className="specHeader">
+          <span>Specification</span>
+          <b>{left.maker}</b>
+          <em>{right.maker}</em>
+        </div>
         {rows.map(([label, a, b]) => (
           <div key={label}>
             <span>{label}</span>
@@ -89,10 +105,9 @@ function ComparisonStage({ comparison, answer, sources }) {
         ))}
       </div>
       <div className="sourceStrip">
-        <strong>Verified data</strong>
+        <strong>{left.maker} vs {right.maker}</strong>
         {sources.length ? sources.slice(0, 3).map((source) => <a href={source.url} key={source.url} target="_blank" rel="noreferrer">{source.name}</a>) : <span>Realtime model active</span>}
       </div>
-      {answer && <p className="comparisonAnswer">{answer}</p>}
     </section>
   );
 }
@@ -104,6 +119,7 @@ function App() {
   const [level, setLevel] = useState(0);
   const [streamText, setStreamText] = useState('');
   const [recognized, setRecognized] = useState('');
+  const [conversation, setConversation] = useState([]);
   const [comparison, setComparison] = useState(null);
   const [sources, setSources] = useState([]);
   const [input, setInput] = useState('');
@@ -181,7 +197,10 @@ function App() {
       index += Math.max(2, Math.round(text.length / 110));
       setStreamText(text.slice(0, index));
       if (index < text.length) window.setTimeout(step, 18);
-      else speak(text);
+      else {
+        setConversation((items) => [...items, { role: 'assistant', text }].slice(-4));
+        speak(text);
+      }
     };
     step();
   };
@@ -216,7 +235,7 @@ function App() {
         socket.send(JSON.stringify({
           type: 'session.update',
           session: {
-            instructions: 'You are AT MOTORS luxury automotive AI concierge. Be concise, premium, and helpful. If comparing cars, focus on performance, comfort, ownership fit, price tier, and next viewing step.',
+            instructions: 'You are AT MOTORS luxury automotive AI concierge. Only answer automotive, car comparison, ownership, finance, test-drive, showroom, and AT MOTORS questions. If asked anything outside automotive, politely refuse and redirect to cars. Be concise, premium, and helpful. If comparing cars, focus on performance, comfort, ownership fit, price tier, and next viewing step.',
             modalities: ['text'],
             turn_detection: {
               type: 'server_vad',
@@ -238,7 +257,7 @@ function App() {
           type: 'response.create',
           response: {
             modalities: ['text'],
-            instructions: 'Answer as a premium automotive concierge. Do not mention setup, Bing, grounding, or Azure.',
+            instructions: 'Answer as a premium automotive concierge. Stay strictly on automotive topics. Do not mention setup, Bing, grounding, or Azure.',
           },
         }));
       };
@@ -279,16 +298,25 @@ function App() {
   const ask = async (message) => {
     const value = message.trim();
     if (!value) return;
+    if (!isAutomotiveTopic(value)) {
+      setComparison(null);
+      setSources([]);
+      setRecognized(value);
+      setConversation((items) => [...items, { role: 'user', text: value }].slice(-4));
+      streamAnswer('I can only assist with AT MOTORS, cars, automotive comparisons, ownership, finance, test drives, and showroom bookings.');
+      return;
+    }
     const parsed = parseComparison(value);
     setRecognized(value);
     setComparison(parsed);
     setSources([]);
+    setConversation((items) => [...items, { role: 'user', text: value }].slice(-4));
     setMode(parsed ? 'comparison' : 'responding');
     setInput('');
 
     try {
       const realtimeReply = await askRealtime(value);
-      streamAnswer(realtimeReply || 'I am ready to continue the AT MOTORS realtime session.');
+      streamAnswer(realtimeReply || 'I am ready to continue the AT MOTORS concierge session.');
     } catch {
       try {
         const response = await fetch(`${API_BASE}/at-motors/chat`, {
@@ -301,7 +329,7 @@ function App() {
         setSources(data.sources || []);
         streamAnswer(data.reply);
       } catch {
-        streamAnswer('I can compare these models on performance, comfort, ownership fit, price tier, and viewing next steps. Please check the realtime and chat environment variables in Azure.');
+        streamAnswer('I can compare these models on performance, comfort, ownership fit, price tier, and viewing next steps. For AT MOTORS, I would start with driving style, budget tier, and preferred test-drive timing.');
       }
     }
   };
@@ -349,10 +377,11 @@ function App() {
     setComparison(null);
     setStreamText('');
     setRecognized('');
+    setConversation([]);
   };
 
   return (
-    <main className={`cockpit mode-${mode}`}>
+    <main className={`cockpit mode-${mode} ${comparison ? 'has-comparison' : ''}`}>
       <div className="kenBurns" style={{ backgroundImage: `url(${background.img})` }} />
       <div className="shade" />
       <header className="brand">
@@ -368,12 +397,17 @@ function App() {
             <span>{mode === 'listening' ? 'Listening' : mode === 'responding' ? 'Streaming' : 'Talk to AI'}</span>
           </button>
           <div className="transcript">
-            {recognized && <p className="recognized">{recognized}</p>}
-            {streamText && <p className="stream">{streamText}</p>}
+            <div className="chatGlow">
+              {conversation.slice(-2).map((item, index) => (
+                <p className={`chatLine ${item.role}`} key={`${item.role}-${index}-${item.text.slice(0, 12)}`}>{item.text}</p>
+              ))}
+              {recognized && <p className="recognized">{recognized}</p>}
+              {streamText && <p className="stream">{streamText}</p>}
+            </div>
           </div>
         </div>
 
-        <ComparisonStage comparison={comparison} answer={mode === 'comparison' ? streamText : ''} sources={sources} />
+        <ComparisonStage comparison={comparison} sources={sources} />
 
         {mode === 'background' && (
           <div className="heroCopy">
