@@ -91,6 +91,7 @@ function createAudioContext() {
 
 function Icon({ name }) {
   const paths = {
+    chat: <><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z" /><path d="M8 9h8" /><path d="M8 13h5" /></>,
     mic: <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />,
     end: <path d="M21 15.4c-2.2-1.2-5.1-1.9-9-1.9s-6.8.7-9 1.9l2.6 4.2 3.3-1.7v-2.2c.9-.1 1.9-.2 3.1-.2s2.2.1 3.1.2v2.2l3.3 1.7 2.6-4.2Z" />,
     mute: <><path d="M11 5 6 9H3v6h3l5 4V5Z" /><path d="m23 9-6 6" /><path d="m17 9 6 6" /></>,
@@ -171,6 +172,7 @@ function App() {
   const [conversation, setConversation] = useState([]);
   const [comparison, setComparison] = useState(null);
   const [comparisonLoading, setComparisonLoading] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [input, setInput] = useState('');
 
   const realtimeRef = useRef(null);
@@ -193,6 +195,7 @@ function App() {
   const chatGlowRef = useRef(null);
   const stageRef = useRef(null);
   const backgroundImage = comparison?.vehicles?.[0]?.imageUrl || showroomScenes[activeCar].img;
+  const hasTranscript = Boolean(conversation.length || recognized || streamText);
 
   useEffect(() => {
     const timer = window.setInterval(() => setActiveCar((index) => (index + 1) % showroomScenes.length), 7000);
@@ -419,7 +422,7 @@ function App() {
     }
 
     if (type === 'error') {
-      setStreamText('Realtime voice is unavailable right now. You can still type your automotive request below.');
+      setStreamText('Realtime voice is unavailable right now. Open chat for text concierge support.');
       setMode(comparisonRef.current ? 'comparison' : 'background');
     }
   };
@@ -542,7 +545,8 @@ function App() {
     window.speechSynthesis.speak(utterance);
   };
 
-  const streamAnswer = (text) => {
+  const streamAnswer = (text, options = {}) => {
+    const { speakOutput = true } = options;
     setStreamText('');
     setMode('responding');
     let index = 0;
@@ -552,7 +556,8 @@ function App() {
       if (index < text.length) window.setTimeout(step, 18);
       else {
         setConversation((items) => [...items, { role: 'assistant', text }].slice(-4));
-        speak(text);
+        if (speakOutput) speak(text);
+        else setMode(comparisonRef.current ? 'comparison' : 'background');
       }
     };
     step();
@@ -582,13 +587,13 @@ function App() {
     }));
   };
 
-  const ask = async (message) => {
+  const askChat = async (message) => {
     const value = message.trim();
     if (!value) return;
     if (!isAutomotiveTopic(value)) {
       setRecognized(value);
       setConversation((items) => [...items, { role: 'user', text: value }].slice(-4));
-      streamAnswer('I can only assist with AT MOTORS, cars, automotive comparisons, ownership, finance, test drives, and showroom bookings.');
+      streamAnswer('I can only assist with AT MOTORS, cars, automotive comparisons, ownership, finance, test drives, and showroom bookings.', { speakOutput: false });
       return;
     }
     const shouldCompare = isComparisonRequest(value);
@@ -599,20 +604,16 @@ function App() {
     if (shouldCompare) void loadComparison(value);
 
     try {
-      await sendRealtimeTextMessage(value);
-    } catch {
-      try {
-        const response = await fetch(`${API_BASE}/at-motors/chat`, {
+      const response = await fetch(`${API_BASE}/at-motors/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: value, history: [] }),
-        });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || 'Chat failed');
-        streamAnswer(data.reply);
-      } catch {
-        streamAnswer('I can compare these models on performance, comfort, ownership fit, price tier, and viewing next steps. For AT MOTORS, I would start with driving style, budget tier, and preferred test-drive timing.');
-      }
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Chat failed');
+      streamAnswer(data.reply, { speakOutput: false });
+    } catch {
+      streamAnswer('I can compare these models on performance, comfort, ownership fit, price tier, and viewing next steps. For AT MOTORS, I would start with driving style, budget tier, and preferred test-drive timing.', { speakOutput: false });
     }
   };
 
@@ -626,10 +627,10 @@ function App() {
       const socket = await openRealtimeSocket({ closeOnDone: false });
       await startMicStreaming(socket);
       setMode('listening');
-      setStreamText('Listening. Ask about AT MOTORS vehicles, pricing, test drives, or comparisons.');
+      setStreamText('');
     } catch {
       stopMicStreaming();
-      setStreamText('Realtime voice is unavailable right now. You can still type your automotive request below.');
+      setStreamText('Realtime voice is unavailable right now. Open chat for text concierge support.');
       setMode('background');
     }
   };
@@ -664,7 +665,7 @@ function App() {
             <b />
             <span>{mode === 'connecting' ? 'Connecting' : mode === 'listening' ? 'Listening' : mode === 'responding' ? 'Streaming' : 'Talk to AI'}</span>
           </button>
-          <div className="transcript">
+          <div className={`transcript ${hasTranscript ? 'isVisible' : ''}`}>
             <div className="chatGlow" ref={chatGlowRef}>
               {conversation.slice(-2).map((item, index) => (
                 <p className={`chatLine ${item.role}`} key={`${item.role}-${index}-${item.text.slice(0, 12)}`}>{item.text}</p>
@@ -685,8 +686,12 @@ function App() {
         )}
       </section>
 
-      <form className="askBar" onSubmit={(event) => { event.preventDefault(); ask(input); }}>
-        <input value={input} onChange={(event) => setInput(event.target.value)} placeholder="Ask: Compare Ferrari and Maserati..." />
+      <button className={`chatLauncher ${chatOpen ? 'isOpen' : ''}`} type="button" onClick={() => setChatOpen((value) => !value)} aria-label="Open chat">
+        <Icon name="chat" />
+      </button>
+
+      <form className={`askBar ${chatOpen ? 'isOpen' : ''}`} onSubmit={(event) => { event.preventDefault(); askChat(input); }}>
+        <input value={input} onChange={(event) => setInput(event.target.value)} placeholder="Chat: compare Ferrari SF90 and Deepal S07..." />
         <button type="submit">Ask</button>
       </form>
 
