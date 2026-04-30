@@ -10,8 +10,7 @@ The project is ready to push into a new GitHub repo and deploy to Azure Static W
 - Beige, orange, and navy brand palette.
 - Animated Ferrari, Ford, and Maserati showroom sections.
 - AI comparison screens.
-- Browser voice input with speech recognition where supported.
-- Browser voice output with synced listening, thinking, streaming, and speaking animation.
+- GPT Realtime audio-in/audio-out with synced listening, thinking, streaming, and speaking animation.
 - Automatic inline insight popup after a voice or text ask.
 - Two-vehicle comparison panel for comparison asks and action panels for booking, finance, daily-use, or other requests.
 - Premium single-screen cockpit UI with a voice-reactive generative orb.
@@ -232,25 +231,26 @@ After deployment:
 
 ## Notes
 
-- Speech-to-text uses the browser `SpeechRecognition` / `webkitSpeechRecognition` API. It works best in Chrome and Edge over HTTPS or localhost.
-- Text-to-speech uses the browser `speechSynthesis` API.
+- Live voice uses Azure GPT Realtime WebSocket audio-in/audio-out when `AZURE_REALTIME_*` variables are configured.
+- The browser streams microphone PCM16 audio to the realtime model and plays returned PCM16 audio chunks directly.
+- Browser `speechSynthesis` is kept only as a fallback for non-realtime chat errors.
 - The orb motion uses Web Audio frequency analysis from the microphone and maps the signal into CSS variable `--voice-level`.
 - Comparison asks open a horizontal side-by-side stage with source links when Bing grounding is configured.
 - If Azure OpenAI settings are missing, the backend returns a useful fallback response so the UI still works.
 
 ## Realtime Voice Upgrade Notes
 
-The app now calls `/api/at-motors/realtime-session` to get a WebSocket URL for Azure GPT Realtime, then streams the text ask to the realtime deployment. Browser speech recognition captures the user request, and the realtime model streams the answer text back into the cockpit.
+The app calls `/api/at-motors/realtime-session` to get a WebSocket URL for Azure GPT Realtime. When the visitor clicks `Talk to AI`, the browser streams microphone audio as base64 PCM16 chunks with `input_audio_buffer.append`. Server VAD commits the user turn and creates the response automatically. The app listens for text transcript deltas and PCM16 audio deltas, renders the text live, and plays the model voice as it streams.
 
-For true Azure GPT Realtime or Voice Live:
+Realtime setup:
 
 - Deploy a realtime model such as `gpt-realtime`, `gpt-realtime-mini`, `gpt-4o-realtime-preview`, or `gpt-4o-mini-realtime-preview` in a supported region.
 - `gpt-4.1-mini` is not a realtime speech model.
-- Voice Live supports server VAD and barge-in through `turn_detection.interrupt_response`.
-- For browser apps, Microsoft recommends WebRTC for lowest latency.
+- Set `AZURE_REALTIME_ENDPOINT`, `AZURE_REALTIME_API_KEY`, `AZURE_REALTIME_DEPLOYMENT`, and `AZURE_REALTIME_API_VERSION` in Static Web App environment variables.
+- Server VAD and barge-in are enabled with `turn_detection.create_response` and `turn_detection.interrupt_response`.
 
 Current implementation:
 
 - `gpt-4.1-mini` remains the normal chat fallback.
-- `gpt-realtime-mini` is used first through WebSocket when `AZURE_REALTIME_*` variables are configured.
-- The browser still performs speech-to-text and text-to-speech. Full audio-in/audio-out realtime streaming can be added next with PCM/WebRTC handling.
+- The realtime deployment is used first through WebSocket when `AZURE_REALTIME_*` variables are configured.
+- Typed asks also use realtime audio output first, then fall back to the chat endpoint if realtime is unavailable.
