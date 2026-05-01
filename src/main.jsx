@@ -261,6 +261,8 @@ function App() {
   const modelRespondingRef = useRef(false);
   const lastUserTranscriptRef = useRef('');
   const lastComparisonRequestRef = useRef('');
+  const comparisonDebounceRef = useRef(null);
+  const comparisonRequestSeqRef = useRef(0);
   const userDraftTranscriptRef = useRef('');
   const chatGlowRef = useRef(null);
   const stageRef = useRef(null);
@@ -420,7 +422,7 @@ function App() {
       window.setTimeout(() => endSession({ preserveTranscript: true }), 450);
       return;
     }
-    requestComparisonFromText(value);
+    requestComparisonFromText(value, { immediate: true });
   };
 
   const handleRealtimeEvent = (event) => {
@@ -588,6 +590,8 @@ function App() {
   }, []);
 
   const loadComparison = async (message) => {
+    const requestSeq = comparisonRequestSeqRef.current + 1;
+    comparisonRequestSeqRef.current = requestSeq;
     setComparisonLoading(true);
     try {
       const response = await fetch(`${API_BASE}/at-motors/comparison`, {
@@ -597,25 +601,34 @@ function App() {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.comparison) throw new Error(data.error || 'Comparison failed');
+      if (requestSeq !== comparisonRequestSeqRef.current) return;
       setComparison(data.comparison);
       setMode('comparison');
       window.setTimeout(() => {
         compareAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 180);
     } catch {
-      setStreamText('I can keep the current comparison visible. Ask again with two specific models when you want a fresh dossier.');
+      if (requestSeq === comparisonRequestSeqRef.current) {
+        setStreamText('I can keep the current comparison visible. Ask again with two specific models when you want a fresh dossier.');
+      }
     } finally {
-      setComparisonLoading(false);
+      if (requestSeq === comparisonRequestSeqRef.current) setComparisonLoading(false);
     }
   };
 
-  const requestComparisonFromText = (message) => {
+  const requestComparisonFromText = (message, options = {}) => {
+    const { immediate = false } = options;
     const value = cleanDisplayText(message);
     if (!value || !isComparisonRequest(value) || (!isAutomotiveTopic(value) && !comparisonRef.current)) return false;
     const key = value.toLowerCase();
-    if (key === lastComparisonRequestRef.current) return true;
-    lastComparisonRequestRef.current = key;
-    void loadComparison(value);
+    const run = () => {
+      if (key === lastComparisonRequestRef.current) return;
+      lastComparisonRequestRef.current = key;
+      void loadComparison(value);
+    };
+    window.clearTimeout(comparisonDebounceRef.current);
+    if (immediate) run();
+    else comparisonDebounceRef.current = window.setTimeout(run, 850);
     return true;
   };
 
@@ -625,7 +638,7 @@ function App() {
     setStreamText(vehicle.detail || `Live source model from ${vehicle.brand}.`);
     setConversation((items) => [...items, { role: 'user', text: `Show ${text}` }].slice(-4));
     setMode('responding');
-    requestComparisonFromText(vehicle.comparePrompt || `Compare ${text} with another AT MOTORS model`);
+    requestComparisonFromText(vehicle.comparePrompt || `Compare ${text} with another AT MOTORS model`, { immediate: true });
   };
 
   const downloadComparisonReport = () => {
@@ -724,7 +737,7 @@ function App() {
     setConversation((items) => [...items, { role: 'user', text: value }].slice(-4));
     setMode(comparison || shouldCompare ? 'comparison' : 'responding');
     setInput('');
-    if (shouldCompare) requestComparisonFromText(value);
+    if (shouldCompare) requestComparisonFromText(value, { immediate: true });
 
     try {
       const response = await fetch(`${API_BASE}/at-motors/chat`, {
@@ -761,6 +774,7 @@ function App() {
 
   const endSession = ({ preserveTranscript = false } = {}) => {
     realtimeRef.current?.close();
+    window.clearTimeout(comparisonDebounceRef.current);
     window.speechSynthesis?.cancel();
     stopMicStreaming();
     stopPlayback();
