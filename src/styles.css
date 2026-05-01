@@ -131,11 +131,19 @@ svg { width: 18px; height: 18px; }
   align-items: center;
   display: flex;
   gap: clamp(10px, 1.4vw, 18px);
-  justify-content: center;
+  justify-content: flex-start;
   min-height: 96px;
   opacity: .96;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 8px 6px 12px;
   perspective: 900px;
-  width: min(760px, calc(100vw - 44px));
+  scrollbar-width: none;
+  width: min(1120px, calc(100vw - 44px));
+}
+
+.holoRail::-webkit-scrollbar {
+  display: none;
 }
 
 .holoCar {
@@ -160,6 +168,7 @@ svg { width: 18px; height: 18px; }
   position: relative;
   transform-style: preserve-3d;
   transition: transform .28s var(--ease), border-color .28s var(--ease), box-shadow .28s var(--ease);
+  flex: 0 0 auto;
   width: clamp(112px, 12vw, 154px);
 }
 
