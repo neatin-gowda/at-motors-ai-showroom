@@ -34,6 +34,12 @@ const automotiveTerms = [
   'bentley', 'rolls', 'aston martin', 'mclaren', 'range rover', 'lexus',
 ];
 
+const farewellPatterns = [
+  /\b(that'?s all|that is all|all i had|i am done|i'm done|we are done)\b/i,
+  /\b(thank you|thanks|thank you very much|bye|goodbye|see you|stop listening|end session)\b/i,
+  /\b(no more questions|nothing else|disconnect|close the session)\b/i,
+];
+
 function bytesToBase64(bytes) {
   let binary = '';
   const chunkSize = 0x8000;
@@ -103,12 +109,30 @@ function Icon({ name }) {
 
 function isComparisonRequest(message) {
   const text = message.toLowerCase();
-  return /\b(compare|comparison|versus|vs\.?|against|between)\b/i.test(text);
+  return /\b(compare|comparison|versus|vs\.?|against|between|table|tabular|specs|specification)\b/i.test(text);
 }
 
 function isAutomotiveTopic(message) {
   const text = message.toLowerCase();
   return automotiveTerms.some((term) => text.includes(term));
+}
+
+function isFarewell(message) {
+  return farewellPatterns.some((pattern) => pattern.test(message));
+}
+
+function HologramRail() {
+  return (
+    <div className="holoRail" aria-hidden="true">
+      {['GT', 'EV', 'SUV', 'V12'].map((label, index) => (
+        <div className="holoCar" style={{ '--delay': `${index * .42}s` }} key={label}>
+          <span>{label}</span>
+          <i />
+          <b />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function ComparisonStage({ comparison, loading, onDownload }) {
@@ -176,6 +200,7 @@ function App() {
   const [input, setInput] = useState('');
 
   const realtimeRef = useRef(null);
+  const realtimeSessionRef = useRef(null);
   const closeRealtimeOnDoneRef = useRef(false);
   const analyserRef = useRef(null);
   const rafRef = useRef(null);
@@ -329,6 +354,18 @@ function App() {
     lastUserTranscriptRef.current = value;
     setRecognized(value);
     setConversation((items) => [...items, { role: 'user', text: value }].slice(-4));
+    if (isFarewell(value)) {
+      setStreamText('Session closed. Tap Talk to AI when you want the concierge again.');
+      if (realtimeRef.current?.readyState === WebSocket.OPEN && modelRespondingRef.current) {
+        try {
+          realtimeRef.current.send(JSON.stringify({ type: 'response.cancel' }));
+        } catch {
+          // The server may have no active response to cancel.
+        }
+      }
+      window.setTimeout(() => endSession({ preserveTranscript: true }), 450);
+      return;
+    }
     if (isAutomotiveTopic(value) && isComparisonRequest(value)) void loadComparison(value);
   };
 
@@ -456,9 +493,13 @@ function App() {
       return existing;
     }
 
-    const sessionResponse = await fetch(`${API_BASE}/at-motors/realtime-session`);
-    const session = await sessionResponse.json().catch(() => ({}));
-    if (!sessionResponse.ok || !session.url) throw new Error(session.error || 'Realtime session is not configured');
+    let session = realtimeSessionRef.current;
+    if (!session?.url) {
+      const sessionResponse = await fetch(`${API_BASE}/at-motors/realtime-session`);
+      session = await sessionResponse.json().catch(() => ({}));
+      if (!sessionResponse.ok || !session.url) throw new Error(session.error || 'Realtime session is not configured');
+      realtimeSessionRef.current = session;
+    }
 
     return new Promise((resolve, reject) => {
       const socket = new WebSocket(session.url);
@@ -479,7 +520,12 @@ function App() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      openRealtimeSocket({ closeOnDone: false }).catch(() => {});
+      fetch(`${API_BASE}/at-motors/realtime-session`)
+        .then((response) => response.ok ? response.json() : null)
+        .then((session) => {
+          if (session?.url) realtimeSessionRef.current = session;
+        })
+        .catch(() => {});
     }, 1200);
     return () => window.clearTimeout(timer);
   }, []);
@@ -635,7 +681,7 @@ function App() {
     }
   };
 
-  const endSession = () => {
+  const endSession = ({ preserveTranscript = false } = {}) => {
     realtimeRef.current?.close();
     window.speechSynthesis?.cancel();
     stopMicStreaming();
@@ -643,10 +689,12 @@ function App() {
     playbackContextRef.current?.close().catch(() => {});
     playbackContextRef.current = null;
     setMode('background');
-    setComparison(null);
-    setStreamText('');
-    setRecognized('');
-    setConversation([]);
+    if (!preserveTranscript) {
+      setComparison(null);
+      setStreamText('');
+      setRecognized('');
+      setConversation([]);
+    }
   };
 
   return (
@@ -660,6 +708,7 @@ function App() {
 
       <section className="stage" ref={stageRef}>
         <div className="orbDock">
+          <HologramRail />
           <button className="orb" onClick={startLiveSession} aria-label="Talk to AI">
             <i />
             <b />
@@ -698,7 +747,7 @@ function App() {
       <footer className="liveFooter">
         <div className="liveDot"><Icon name="live" /> Live</div>
         <button className={muted ? 'isMuted' : ''} onClick={() => setMuted((value) => !value)}><Icon name="mute" /> {muted ? 'Unmute' : 'Mute'}</button>
-        <button className="endButton" onClick={endSession}><Icon name="end" /> End</button>
+        <button className="endButton" onClick={() => endSession()}><Icon name="end" /> End</button>
       </footer>
     </main>
   );
