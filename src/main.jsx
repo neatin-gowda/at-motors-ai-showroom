@@ -4,7 +4,7 @@ import './styles.css';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 const REALTIME_SAMPLE_RATE = 24000;
-const REALTIME_INSTRUCTIONS = 'You are AT MOTORS luxury automotive AI concierge. Only answer automotive, car comparison, ownership, finance, test-drive, showroom, and AT MOTORS questions. If asked anything outside automotive, politely refuse and redirect to cars. Be concise, premium, and helpful. If comparing cars, focus on performance, comfort, ownership fit, price tier, and next viewing step. Do not mention setup, Bing, grounding, environment variables, or Azure.';
+const REALTIME_INSTRUCTIONS = 'You are AT MOTORS luxury automotive AI concierge. Only answer automotive, car comparison, ownership, finance, test-drive, showroom, and AT MOTORS questions. If asked anything outside automotive, politely refuse and redirect to cars. Be concise, premium, and helpful. If comparing cars, focus on performance, comfort, ownership fit, AED price tier, and next viewing step. Always speak prices in UAE dirhams/AED, never USD. Do not mention setup, Bing, grounding, environment variables, Azure, or technical implementation. Use English only.';
 
 const showroomScenes = [
   {
@@ -24,20 +24,56 @@ const showroomScenes = [
   },
 ];
 
+const railVehicles = [
+  {
+    brand: 'Ferrari',
+    model: 'SF90 Stradale',
+    type: 'Hybrid supercar',
+    detail: '986 hp plug-in hybrid theatre, built for clients who want maximum emotion and track-grade presence.',
+    imageUrl: 'https://images.unsplash.com/photo-1556516731-779d3492975b?auto=format&fit=crop&q=90&w=1400',
+    comparePrompt: 'Compare Ferrari SF90 Stradale and Maserati GranTurismo Trofeo in AED',
+  },
+  {
+    brand: 'Ford',
+    model: 'Mustang GT',
+    type: 'Performance coupe',
+    detail: 'A V8 performance icon with strong value, daily usability, and an unmistakable sound.',
+    imageUrl: 'https://images.unsplash.com/photo-1561535743-c82c241502d5?auto=format&fit=crop&q=90&w=1400',
+    comparePrompt: 'Compare Ford Mustang GT and Ferrari SF90 Stradale in AED',
+  },
+  {
+    brand: 'Maserati',
+    model: 'GranTurismo Trofeo',
+    type: 'Grand tourer',
+    detail: 'A refined Italian GT for long-distance elegance, comfort, and effortless pace.',
+    imageUrl: 'https://images.unsplash.com/photo-1756548843479-3783100b3447?auto=format&fit=crop&q=90&w=1400',
+    comparePrompt: 'Compare Maserati GranTurismo Trofeo and Porsche 911 Carrera GTS in AED',
+  },
+  {
+    brand: 'Deepal',
+    model: 'S07',
+    type: 'Smart EV SUV',
+    detail: 'A tech-forward SUV choice for premium screens, quiet commuting, and accessible AED ownership.',
+    imageUrl: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&q=90&w=1400',
+    comparePrompt: 'Compare Deepal S07 and Tesla Model S in AED',
+  },
+];
+
 const automotiveTerms = [
   'car', 'cars', 'auto', 'automotive', 'vehicle', 'vehicles', 'motor', 'motors',
   'engine', 'speed', 'drive', 'driving', 'luxury', 'supercar', 'sedan', 'suv',
   'coupe', 'convertible', 'horsepower', 'hp', 'torque', '0-100', '0 to 100',
   'price', 'finance', 'booking', 'viewing', 'test drive', 'compare', 'range',
   'battery', 'hybrid', 'ev', 'electric', 'mustang', 'ferrari', 'ford', 'maserati',
-  'deepal', 'porsche', 'lucid', 'mercedes', 'bmw', 'audi', 'tesla', 'lamborghini',
+  'sf90', 'roma', '296', 'mc20', 'granturismo', 'trofeo', 'deepal', 's07',
+  'porsche', '911', 'taycan', 'lucid', 'mercedes', 'bmw', 'audi', 'tesla', 'model s', 'lamborghini',
   'bentley', 'rolls', 'aston martin', 'mclaren', 'range rover', 'lexus',
 ];
 
 const farewellPatterns = [
   /\b(that'?s all|that is all|all i had|i am done|i'm done|we are done)\b/i,
-  /\b(thank you|thanks|thank you very much|bye|goodbye|see you|stop listening|end session)\b/i,
-  /\b(no more questions|nothing else|disconnect|close the session)\b/i,
+  /\b(thank you|thanks|thank you very much|bye|goodbye|see you|see ya|take care|stop listening|end session)\b/i,
+  /\b(no more questions|nothing else|disconnect|close the session|catch you later|talk later)\b/i,
 ];
 
 function bytesToBase64(bytes) {
@@ -109,7 +145,7 @@ function Icon({ name }) {
 
 function isComparisonRequest(message) {
   const text = message.toLowerCase();
-  return /\b(compare|comparison|versus|vs\.?|against|between|table|tabular|specs|specification)\b/i.test(text);
+  return /\b(compare|comparison|versus|vs\.?|against|between|table|tabular|specs|specification|difference|better|recommend|choose|which one)\b/i.test(text);
 }
 
 function isAutomotiveTopic(message) {
@@ -121,15 +157,30 @@ function isFarewell(message) {
   return farewellPatterns.some((pattern) => pattern.test(message));
 }
 
-function HologramRail() {
+function cleanDisplayText(value, options = {}) {
+  const { trim = true } = options;
+  const text = String(value || '')
+    .replace(/[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff\uac00-\ud7af]+/g, '')
+    .replace(/\s{2,}/g, ' ');
+  return trim ? text.trim() : text;
+}
+
+function HologramRail({ onInspect }) {
   return (
-    <div className="holoRail" aria-hidden="true">
-      {['GT', 'EV', 'SUV', 'V12'].map((label, index) => (
-        <div className="holoCar" style={{ '--delay': `${index * .42}s` }} key={label}>
-          <span>{label}</span>
-          <i />
-          <b />
-        </div>
+    <div className="holoRail" aria-label="Featured vehicles">
+      {railVehicles.map((vehicle, index) => (
+        <button
+          className="holoCar"
+          style={{ '--delay': `${index * .42}s` }}
+          key={`${vehicle.brand}-${vehicle.model}`}
+          type="button"
+          onClick={() => onInspect(vehicle)}
+        >
+          <img src={vehicle.imageUrl} alt={`${vehicle.brand} ${vehicle.model}`} />
+          <span>{vehicle.brand}</span>
+          <small>{vehicle.model}</small>
+          <em>{vehicle.type}</em>
+        </button>
       ))}
     </div>
   );
@@ -213,10 +264,13 @@ function App() {
   const playbackSourcesRef = useRef([]);
   const mutedRef = useRef(false);
   const comparisonRef = useRef(null);
+  const compareAnchorRef = useRef(null);
   const responseTextRef = useRef('');
   const responseHasAudioTranscriptRef = useRef(false);
   const modelRespondingRef = useRef(false);
   const lastUserTranscriptRef = useRef('');
+  const lastComparisonRequestRef = useRef('');
+  const userDraftTranscriptRef = useRef('');
   const chatGlowRef = useRef(null);
   const stageRef = useRef(null);
   const backgroundImage = comparison?.vehicles?.[0]?.imageUrl || showroomScenes[activeCar].img;
@@ -349,7 +403,7 @@ function App() {
   };
 
   const handleUserTranscript = (transcript) => {
-    const value = transcript.trim();
+    const value = cleanDisplayText(transcript);
     if (!value || value === lastUserTranscriptRef.current) return;
     lastUserTranscriptRef.current = value;
     setRecognized(value);
@@ -366,7 +420,7 @@ function App() {
       window.setTimeout(() => endSession({ preserveTranscript: true }), 450);
       return;
     }
-    if (isAutomotiveTopic(value) && isComparisonRequest(value)) void loadComparison(value);
+    requestComparisonFromText(value);
   };
 
   const handleRealtimeEvent = (event) => {
@@ -385,6 +439,7 @@ function App() {
       stopPlayback();
       responseTextRef.current = '';
       responseHasAudioTranscriptRef.current = false;
+      userDraftTranscriptRef.current = '';
       setStreamText('');
       setRecognized('');
       setMode('listening');
@@ -412,7 +467,9 @@ function App() {
       type === 'conversation.item.input_audio_transcription.delta' ||
       type === 'conversation.item.audio_transcription.delta'
     ) {
-      setRecognized((text) => `${text}${data.delta || ''}`);
+      userDraftTranscriptRef.current = cleanDisplayText(`${userDraftTranscriptRef.current}${data.delta || ''}`, { trim: false });
+      setRecognized(userDraftTranscriptRef.current);
+      requestComparisonFromText(userDraftTranscriptRef.current);
     }
 
     if (type === 'response.audio.delta' || type === 'response.output_audio.delta') {
@@ -422,21 +479,21 @@ function App() {
 
     if (type === 'response.audio_transcript.delta' || type === 'response.output_audio_transcript.delta') {
       responseHasAudioTranscriptRef.current = true;
-      responseTextRef.current += data.delta || '';
+      responseTextRef.current = cleanDisplayText(`${responseTextRef.current}${data.delta || ''}`, { trim: false });
       setStreamText(responseTextRef.current);
       setMode('responding');
     }
 
     if ((type === 'response.text.delta' || type === 'response.output_text.delta') && !responseHasAudioTranscriptRef.current) {
-      responseTextRef.current += data.delta || '';
+      responseTextRef.current = cleanDisplayText(`${responseTextRef.current}${data.delta || ''}`, { trim: false });
       setStreamText(responseTextRef.current);
       setMode('responding');
     }
 
     if (type === 'response.audio_transcript.done' || type === 'response.output_audio_transcript.done') {
       if (data.transcript) {
-        responseTextRef.current = data.transcript;
-        setStreamText(data.transcript);
+        responseTextRef.current = cleanDisplayText(data.transcript);
+        setStreamText(responseTextRef.current);
       }
     }
 
@@ -541,14 +598,34 @@ function App() {
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.comparison) throw new Error(data.error || 'Comparison failed');
       setComparison(data.comparison);
+      setMode('comparison');
       window.setTimeout(() => {
-        stageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        compareAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 180);
     } catch {
       setStreamText('I can keep the current comparison visible. Ask again with two specific models when you want a fresh dossier.');
     } finally {
       setComparisonLoading(false);
     }
+  };
+
+  const requestComparisonFromText = (message) => {
+    const value = cleanDisplayText(message);
+    if (!value || !isComparisonRequest(value) || (!isAutomotiveTopic(value) && !comparisonRef.current)) return false;
+    const key = value.toLowerCase();
+    if (key === lastComparisonRequestRef.current) return true;
+    lastComparisonRequestRef.current = key;
+    void loadComparison(value.includes('AED') ? value : `${value} in AED`);
+    return true;
+  };
+
+  const inspectRailVehicle = (vehicle) => {
+    const text = `${vehicle.brand} ${vehicle.model}`;
+    setRecognized(text);
+    setStreamText(vehicle.detail);
+    setConversation((items) => [...items, { role: 'user', text: `Show ${text}` }].slice(-4));
+    setMode('responding');
+    requestComparisonFromText(vehicle.comparePrompt);
   };
 
   const downloadComparisonReport = () => {
@@ -647,7 +724,7 @@ function App() {
     setConversation((items) => [...items, { role: 'user', text: value }].slice(-4));
     setMode(comparison || shouldCompare ? 'comparison' : 'responding');
     setInput('');
-    if (shouldCompare) void loadComparison(value);
+    if (shouldCompare) requestComparisonFromText(value);
 
     try {
       const response = await fetch(`${API_BASE}/at-motors/chat`, {
@@ -669,6 +746,7 @@ function App() {
     setStreamText('');
     setRecognized('');
     lastUserTranscriptRef.current = '';
+    userDraftTranscriptRef.current = '';
     try {
       const socket = await openRealtimeSocket({ closeOnDone: false });
       await startMicStreaming(socket);
@@ -708,7 +786,7 @@ function App() {
 
       <section className="stage" ref={stageRef}>
         <div className="orbDock">
-          <HologramRail />
+          <HologramRail onInspect={inspectRailVehicle} />
           <button className="orb" onClick={startLiveSession} aria-label="Talk to AI">
             <i />
             <b />
@@ -725,7 +803,9 @@ function App() {
           </div>
         </div>
 
-        <ComparisonStage comparison={comparison} loading={comparisonLoading} onDownload={downloadComparisonReport} />
+        <div className="compareAnchor" ref={compareAnchorRef}>
+          <ComparisonStage comparison={comparison} loading={comparisonLoading} onDownload={downloadComparisonReport} />
+        </div>
 
         {mode === 'background' && !comparison && (
           <div className="heroCopy">
