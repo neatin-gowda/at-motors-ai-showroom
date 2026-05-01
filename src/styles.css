@@ -131,7 +131,7 @@ svg { width: 18px; height: 18px; }
   align-items: center;
   display: flex;
   gap: clamp(10px, 1.4vw, 18px);
-  justify-content: flex-start;
+  justify-content: center;
   min-height: 96px;
   opacity: .96;
   overflow-x: auto;
@@ -162,14 +162,14 @@ svg { width: 18px; height: 18px; }
   color: rgba(248,244,236,.84);
   cursor: pointer;
   display: block;
-  height: 82px;
+  height: 92px;
   overflow: hidden;
   padding: 0;
   position: relative;
   transform-style: preserve-3d;
   transition: transform .28s var(--ease), border-color .28s var(--ease), box-shadow .28s var(--ease);
   flex: 0 0 auto;
-  width: clamp(112px, 12vw, 154px);
+  width: clamp(150px, 16vw, 210px);
 }
 
 .holoCar:hover,
@@ -196,7 +196,7 @@ svg { width: 18px; height: 18px; }
 }
 
 .holoCar::after {
-  background: linear-gradient(0deg, rgba(2,8,20,.9), rgba(2,8,20,.18) 64%, transparent);
+  background: linear-gradient(0deg, rgba(2,8,20,.72), rgba(2,8,20,.12) 64%, transparent);
   content: "";
   inset: 0;
   position: absolute;
@@ -580,17 +580,19 @@ svg { width: 18px; height: 18px; }
 }
 
 .comparePanel::after {
-  background: linear-gradient(0deg, rgba(2,8,20,.82), transparent 58%);
+  background: linear-gradient(0deg, rgba(2,8,20,.42), rgba(2,8,20,.08) 58%, transparent);
   content: "";
   inset: 0;
   position: absolute;
 }
 
 .compareTitle {
-  background: rgba(4,10,22,.38);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.015)),
+    rgba(4,10,22,.18);
   border: 1px solid rgba(255,255,255,.14);
   border-radius: 16px;
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(13px) saturate(1.2);
   bottom: 18px;
   left: 18px;
   max-width: calc(100% - 36px);
@@ -631,10 +633,12 @@ svg { width: 18px; height: 18px; }
 
 .specGrid {
   align-self: center;
-  background: rgba(6, 18, 35, .5);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.055), rgba(255,255,255,.015)),
+    rgba(6, 18, 35, .36);
   border: 1px solid var(--line);
   border-radius: 18px;
-  backdrop-filter: blur(26px);
+  backdrop-filter: blur(18px) saturate(1.18);
   box-shadow: 0 24px 90px rgba(0,0,0,.34);
   display: grid;
   grid-column: 1 / -1;
@@ -654,7 +658,7 @@ svg { width: 18px; height: 18px; }
 .specGrid em { color: #fff; font-size: 13px; font-style: normal; font-weight: 850; line-height: 1.35; text-align: center; }
 
 .specGrid .specHeader {
-  background: rgba(217,198,163,.08);
+  background: rgba(217,198,163,.055);
   border-bottom: 1px solid var(--line);
 }
 
