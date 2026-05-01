@@ -79,7 +79,7 @@ svg { width: 18px; height: 18px; }
   gap: 18px;
   min-height: 100%;
   justify-items: center;
-  padding: 76px clamp(18px, 4vw, 60px) 150px;
+  padding: 88px clamp(18px, 4vw, 60px) 150px;
   position: relative;
 }
 
@@ -110,18 +110,98 @@ svg { width: 18px; height: 18px; }
 .orbDock {
   align-items: center;
   display: grid;
-  gap: 22px;
+  gap: 16px;
   justify-items: center;
+  margin-top: clamp(16px, 4vh, 46px);
   position: relative;
   transition: transform .8s var(--ease);
   z-index: 8;
 }
 
 .mode-comparison .orbDock,
-.has-comparison .orbDock { gap: 14px; }
+.has-comparison .orbDock {
+  gap: 10px;
+  margin-top: clamp(6px, 1.5vh, 18px);
+}
 
 .mode-comparison .orb,
 .has-comparison .orb { --size: clamp(132px, 16vw, 210px); }
+
+.holoRail {
+  align-items: center;
+  display: flex;
+  gap: clamp(10px, 2vw, 22px);
+  justify-content: center;
+  min-height: 52px;
+  opacity: .96;
+  perspective: 900px;
+  width: min(560px, calc(100vw - 44px));
+}
+
+.holoCar {
+  --delay: 0s;
+  align-items: center;
+  animation: holoFloat 4.6s ease-in-out infinite;
+  animation-delay: var(--delay);
+  background:
+    linear-gradient(135deg, rgba(217,198,163,.18), rgba(127,182,219,.08)),
+    rgba(4,10,22,.3);
+  border: 1px solid rgba(217,198,163,.24);
+  border-radius: 999px;
+  box-shadow:
+    0 12px 44px rgba(0,0,0,.28),
+    0 0 24px rgba(127,182,219,.15);
+  color: rgba(248,244,236,.84);
+  display: grid;
+  font-size: 10px;
+  font-weight: 950;
+  gap: 4px;
+  grid-template-columns: auto 34px;
+  height: 38px;
+  letter-spacing: .14em;
+  padding: 0 12px;
+  position: relative;
+  text-transform: uppercase;
+  transform-style: preserve-3d;
+}
+
+.holoCar i {
+  background: linear-gradient(90deg, transparent, rgba(248,244,236,.72), transparent);
+  border-radius: 999px;
+  height: 8px;
+  position: relative;
+  width: 34px;
+}
+
+.holoCar i::before,
+.holoCar i::after,
+.holoCar b::before,
+.holoCar b::after {
+  border-radius: 50%;
+  content: "";
+  position: absolute;
+}
+
+.holoCar i::before,
+.holoCar i::after {
+  background: rgba(217,198,163,.8);
+  height: 5px;
+  top: 6px;
+  width: 5px;
+}
+
+.holoCar i::before { left: 4px; }
+.holoCar i::after { right: 4px; }
+
+.holoCar b {
+  border: 1px solid rgba(127,182,219,.28);
+  border-radius: 50%;
+  height: 48px;
+  inset: 50% auto auto 50%;
+  position: absolute;
+  transform: translate(-50%, -50%) rotateX(62deg);
+  width: 98px;
+}
 
 .orb {
   --size: clamp(184px, 24vw, 310px);
@@ -212,6 +292,15 @@ svg { width: 18px; height: 18px; }
   width: min(840px, calc(100vw - 36px));
 }
 
+.has-comparison .transcript,
+.mode-comparison .transcript {
+  border-radius: 999px;
+  height: 58px;
+  max-width: min(980px, calc(100vw - 36px));
+  padding: 8px 14px;
+  width: min(900px, calc(100vw - 36px));
+}
+
 .transcript.isVisible {
   opacity: 1;
   pointer-events: auto;
@@ -230,6 +319,16 @@ svg { width: 18px; height: 18px; }
   scroll-behavior: smooth;
 }
 
+.has-comparison .chatGlow,
+.mode-comparison .chatGlow {
+  align-content: center;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  justify-content: start;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
 .chatLine {
   border: 1px solid rgba(255,255,255,.1);
   border-radius: 18px;
@@ -238,6 +337,18 @@ svg { width: 18px; height: 18px; }
   max-width: 76%;
   overflow-wrap: anywhere;
   padding: 10px 13px;
+}
+
+.has-comparison .chatLine,
+.has-comparison .recognized,
+.has-comparison .stream,
+.mode-comparison .chatLine,
+.mode-comparison .recognized,
+.mode-comparison .stream {
+  font-size: 12px;
+  line-height: 1.25;
+  max-width: 520px;
+  white-space: nowrap;
 }
 
 .chatLine.user {
@@ -645,11 +756,18 @@ svg { width: 18px; height: 18px; }
 @keyframes blink { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
 @keyframes carDrift { from { transform: scale(1.02) translate3d(-.6%, 0, 0); } to { transform: scale(1.08) translate3d(.8%, -.6%, 0); } }
 @keyframes scanLine { 0% { transform: translateX(-10%); opacity: 0; } 25% { opacity: .7; } 100% { transform: translateX(220%); opacity: 0; } }
+@keyframes holoFloat {
+  0%, 100% { transform: translate3d(0, 0, 0) rotateY(-8deg); }
+  50% { transform: translate3d(0, -8px, 0) rotateY(8deg); }
+}
 
 @media (max-width: 900px) {
   body { overflow: auto; }
   .cockpit { min-height: 100dvh; overflow-y: auto; }
   .stage { min-height: 100dvh; height: auto; padding-bottom: 180px; }
+  .orbDock { margin-top: 46px; }
+  .holoRail { flex-wrap: wrap; min-height: 88px; }
+  .holoCar { height: 34px; }
   .mode-comparison .orb,
   .has-comparison .orb { --size: clamp(118px, 34vw, 168px); }
   .compareIntro { grid-template-columns: 1fr; }
