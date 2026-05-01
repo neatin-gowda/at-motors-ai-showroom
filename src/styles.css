@@ -260,6 +260,21 @@ svg { width: 18px; height: 18px; }
   transform: translateY(0);
 }
 
+.holoLoading {
+  align-items: center;
+  background: rgba(4,10,22,.34);
+  border: 1px solid rgba(217,198,163,.22);
+  border-radius: 999px;
+  color: rgba(248,244,236,.72);
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 900;
+  height: 38px;
+  letter-spacing: .12em;
+  padding: 0 18px;
+  text-transform: uppercase;
+}
+
 .orb {
   --size: clamp(184px, 24vw, 310px);
   align-items: center;
@@ -523,6 +538,23 @@ svg { width: 18px; height: 18px; }
   display: block;
   height: 100%;
   object-fit: cover;
+  width: 100%;
+}
+
+.imageFallback {
+  align-items: center;
+  animation: carDrift 9s ease-in-out infinite alternate;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(217,198,163,.26), transparent 34%),
+    linear-gradient(135deg, rgba(6,18,35,.94), rgba(75,22,38,.78));
+  color: rgba(248,244,236,.84);
+  display: grid;
+  font-size: clamp(34px, 5vw, 72px);
+  font-weight: 950;
+  height: 100%;
+  letter-spacing: .02em;
+  place-items: center;
+  text-transform: uppercase;
   width: 100%;
 }
 
