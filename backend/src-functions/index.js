@@ -11,7 +11,7 @@ const {
 } = require('./shared');
 
 const SYSTEM_PROMPT = `You are the AT MOTORS luxury automotive AI concierge.
-Represent a premium showroom with Ferrari, Ford, Lincoln, Jaguar, Land Rover, Maserati, VinFast, Deepal, Ford Trucks, Tesla, Mercedes-Benz, Volvo, Toyota, and other automotive brands when requested.
+Represent a premium showroom with Ford, Lincoln, Jaguar, Land Rover, Maserati, Ferrari, VinFast, Deepal, and Ford Trucks.
 Use the supplied showroom context first. If context is missing, say so briefly and give a helpful next step.
 Keep answers polished, concise, and sales-useful.
 When comparison is requested, compare performance, comfort, ownership fit, budget tier, and appointment next step.
@@ -66,25 +66,231 @@ const SOURCE_REGISTRY = [
     aliases: ['ford trucks', 'ford truck', 'f-max', 'f max', 'cargo'],
     url: 'https://www.altayermotors.com/ford-trucks/',
   },
+];
+
+const SHOWROOM_MODELS = [
   {
-    brand: 'Tesla',
-    aliases: ['tesla', 'model s', 'model 3', 'model x', 'model y', 'cybertruck'],
-    url: 'https://www.tesla.com/en_ae',
+    brand: 'Ford',
+    model: 'Mustang GT',
+    type: 'Performance coupe',
+    detail: 'V8 theatre with daily usability and strong showroom appeal.',
+    imageUrl: 'https://images.unsplash.com/photo-1561535743-c82c241502d5?auto=format&fit=crop&q=90&w=1400',
+    comparePrompt: 'Compare Ford Mustang GT and Maserati GranTurismo Trofeo',
   },
   {
-    brand: 'Mercedes-Benz',
-    aliases: ['mercedes', 'benz', 'mercedes-benz', 'amg', 's-class', 'g-class', 'eqs', 'gle', 'glc'],
-    url: 'https://www.mercedes-benz-mena.com/dubai/en/passengercars.html',
+    brand: 'Ford',
+    model: 'Bronco',
+    type: 'Adventure SUV',
+    detail: 'Rugged lifestyle SUV for off-road style and weekend capability.',
+    imageUrl: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&q=90&w=1400',
+    comparePrompt: 'Compare Ford Bronco and Land Rover Defender',
   },
   {
-    brand: 'Volvo',
-    aliases: ['volvo', 'xc40', 'xc60', 'xc90', 'ex30', 'ex40', 'ex90'],
-    url: 'https://www.volvocars.com/ae/',
+    brand: 'Lincoln',
+    model: 'Aviator',
+    type: 'Luxury SUV',
+    detail: 'Quiet premium family SUV with a soft luxury cabin feel.',
+    imageUrl: 'https://images.unsplash.com/photo-1605893477799-b99e3b8b93fe?auto=format&fit=crop&q=90&w=1400',
+    comparePrompt: 'Compare Lincoln Aviator and Land Rover Discovery',
   },
   {
-    brand: 'Toyota',
-    aliases: ['toyota', 'land cruiser', 'prado', 'camry', 'rav4', 'supra', 'hilux', 'fortuner'],
-    url: 'https://www.toyota.ae/',
+    brand: 'Jaguar',
+    model: 'F-Pace',
+    type: 'Luxury performance SUV',
+    detail: 'British performance SUV with a premium road presence.',
+    imageUrl: 'https://images.unsplash.com/photo-1619767886558-efdc259cde1a?auto=format&fit=crop&q=90&w=1400',
+    comparePrompt: 'Compare Jaguar F-Pace and Maserati Grecale',
+  },
+  {
+    brand: 'Land Rover',
+    model: 'Defender',
+    type: 'Luxury 4x4',
+    detail: 'Iconic capability with premium all-terrain character.',
+    imageUrl: 'https://images.unsplash.com/photo-1609521263047-f8f205293f24?auto=format&fit=crop&q=90&w=1400',
+    comparePrompt: 'Compare Land Rover Defender and Ford Bronco',
+  },
+  {
+    brand: 'Maserati',
+    model: 'MC20',
+    type: 'Italian supercar',
+    detail: 'Low-slung Italian performance with exotic showroom theatre.',
+    imageUrl: 'https://images.unsplash.com/photo-1756548843479-3783100b3447?auto=format&fit=crop&q=90&w=1400',
+    comparePrompt: 'Compare Maserati MC20 and Ferrari 296 GTB',
+  },
+  {
+    brand: 'Ferrari',
+    model: '296 GTB',
+    type: 'Hybrid supercar',
+    detail: 'Compact Ferrari hybrid performance with intense emotional pull.',
+    imageUrl: 'https://images.unsplash.com/photo-1556516731-779d3492975b?auto=format&fit=crop&q=90&w=1400',
+    comparePrompt: 'Compare Ferrari 296 GTB and Maserati MC20',
+  },
+  {
+    brand: 'VinFast',
+    model: 'VF 8',
+    type: 'Electric SUV',
+    detail: 'Modern EV SUV with practical premium positioning.',
+    imageUrl: 'https://images.unsplash.com/photo-1593941707882-a5bba53b0998?auto=format&fit=crop&q=90&w=1400',
+    comparePrompt: 'Compare VinFast VF 8 and Deepal S07',
+  },
+  {
+    brand: 'Deepal',
+    model: 'S07',
+    type: 'Smart EV SUV',
+    detail: 'Tech-forward SUV choice with premium screens and quiet commuting.',
+    imageUrl: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&q=90&w=1400',
+    comparePrompt: 'Compare Deepal S07 and VinFast VF 8',
+  },
+  {
+    brand: 'Ford Trucks',
+    model: 'F-MAX',
+    type: 'Heavy truck',
+    detail: 'Commercial long-haul capability for fleet and logistics decisions.',
+    imageUrl: 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&q=90&w=1400',
+    comparePrompt: 'Compare Ford Trucks F-MAX and Ford Trucks Cargo',
+  },
+];
+
+const FALLBACK_MODEL_CATALOG = [
+  {
+    aliases: ['mustang', 'mustang gt'],
+    specs: {
+      Engine: '5.0L V8, approx. 480+ hp',
+      'Top speed': '250-290 km/h approx.',
+      '0-100 km/h': '4.3s approx.',
+      'Estimated price': 'AED 255,000-280,000 approx.',
+      'Best fit': 'Performance coupe buyer wanting V8 theatre and value',
+    },
+  },
+  {
+    aliases: ['bronco'],
+    specs: {
+      Engine: 'Turbo petrol, 4x4',
+      'Top speed': 'Approx. 160-180 km/h',
+      '0-100 km/h': 'Approx. 6.7-8.0s by trim',
+      'Estimated price': 'AED 240,000-330,000 approx.',
+      'Best fit': 'Adventure lifestyle, off-road weekends, expressive SUV presence',
+    },
+  },
+  {
+    aliases: ['aviator'],
+    specs: {
+      Engine: 'Twin-turbo petrol V6',
+      'Top speed': 'Approx. 200 km/h',
+      '0-100 km/h': 'Approx. 6.0s',
+      'Estimated price': 'AED 300,000-390,000 approx.',
+      'Best fit': 'Quiet luxury family SUV buyer',
+    },
+  },
+  {
+    aliases: ['navigator'],
+    specs: {
+      Engine: 'Twin-turbo petrol V6',
+      'Top speed': 'Approx. 180 km/h',
+      '0-100 km/h': 'Approx. 6.0s',
+      'Estimated price': 'AED 430,000-560,000 approx.',
+      'Best fit': 'Large luxury SUV, executive family transport',
+    },
+  },
+  {
+    aliases: ['f-pace', 'f pace'],
+    specs: {
+      Engine: 'Petrol, mild-hybrid options by trim',
+      'Top speed': 'Approx. 217-286 km/h by trim',
+      '0-100 km/h': 'Approx. 4.0-7.3s by trim',
+      'Estimated price': 'AED 290,000-520,000 approx.',
+      'Best fit': 'Luxury SUV buyer wanting British sport character',
+    },
+  },
+  {
+    aliases: ['defender'],
+    specs: {
+      Engine: 'Petrol mild-hybrid options by trim',
+      'Top speed': 'Approx. 191-240 km/h by trim',
+      '0-100 km/h': 'Approx. 5.2-8.0s by trim',
+      'Estimated price': 'AED 280,000-650,000 approx.',
+      'Best fit': 'Premium off-road capability with iconic design',
+    },
+  },
+  {
+    aliases: ['range rover'],
+    specs: {
+      Engine: 'Petrol, mild-hybrid, or plug-in hybrid by trim',
+      'Top speed': 'Approx. 225-250 km/h',
+      '0-100 km/h': 'Approx. 4.6-6.3s by trim',
+      'Estimated price': 'AED 600,000-1.2M+ approx.',
+      'Best fit': 'Flagship luxury SUV buyer',
+    },
+  },
+  {
+    aliases: ['mc20'],
+    specs: {
+      Engine: '3.0L twin-turbo Nettuno V6',
+      'Top speed': '325 km/h approx.',
+      '0-100 km/h': '2.9s approx.',
+      'Estimated price': 'AED 1.1M-1.4M approx.',
+      'Best fit': 'Exotic supercar client wanting Italian rarity',
+    },
+  },
+  {
+    aliases: ['granturismo', 'trofeo'],
+    specs: {
+      Engine: '3.0L twin-turbo V6',
+      'Top speed': '320 km/h approx.',
+      '0-100 km/h': '3.5s approx.',
+      'Estimated price': 'AED 820,000-980,000 approx.',
+      'Best fit': 'Luxury grand touring with performance',
+    },
+  },
+  {
+    aliases: ['296', '296 gtb', '296 gts'],
+    specs: {
+      Engine: 'V6 plug-in hybrid, 800+ hp combined',
+      'Top speed': '330 km/h approx.',
+      '0-100 km/h': '2.9s approx.',
+      'Estimated price': 'AED 1.4M-1.8M approx.',
+      'Best fit': 'Ferrari hybrid performance and emotional ownership',
+    },
+  },
+  {
+    aliases: ['purosangue'],
+    specs: {
+      Engine: '6.5L naturally aspirated V12',
+      'Top speed': '310 km/h approx.',
+      '0-100 km/h': '3.3s approx.',
+      'Estimated price': 'AED 2.0M+ approx.',
+      'Best fit': 'Ultra-luxury Ferrari four-seat performance',
+    },
+  },
+  {
+    aliases: ['vf 8', 'vf8'],
+    specs: {
+      Engine: 'Dual-motor electric AWD by trim',
+      'Top speed': 'Approx. 200 km/h',
+      '0-100 km/h': 'Approx. 5.5-6.5s',
+      'Estimated price': 'AED 170,000-230,000 approx.',
+      'Best fit': 'Electric family SUV buyer',
+    },
+  },
+  {
+    aliases: ['deepal', 's07'],
+    specs: {
+      Engine: 'BEV or range-extended EV by trim',
+      'Top speed': 'Approx. 180-200 km/h',
+      '0-100 km/h': 'Approx. 6.7-7.9s',
+      'Estimated price': 'AED 120,000-150,000 approx.',
+      'Best fit': 'Tech-first SUV buyer with accessible EV positioning',
+    },
+  },
+  {
+    aliases: ['f-max', 'f max'],
+    specs: {
+      Engine: 'Heavy-duty diesel commercial powertrain',
+      'Top speed': 'Fleet governed / market dependent',
+      '0-100 km/h': 'Not a passenger performance metric',
+      'Estimated price': 'Quote-based commercial pricing',
+      'Best fit': 'Fleet, logistics, and long-haul commercial use',
+    },
   },
 ];
 
@@ -111,8 +317,7 @@ function isAutomotiveTopic(message) {
     'ferrari', 'sf90', 'roma', '296', 'ford', 'mustang', 'bronco', 'lincoln',
     'jaguar', 'land rover', 'range rover', 'defender', 'maserati', 'mc20',
     'granturismo', 'trofeo', 'vinfast', 'deepal', 's07', 'ford trucks',
-    'porsche', '911', 'taycan', 'lucid', 'mercedes', 'benz', 'volvo', 'toyota',
-    'bmw', 'audi', 'tesla', 'model s', 'lamborghini', 'bentley', 'rolls',
+    'navigator', 'aviator', 'f-pace', 'f pace', 'vf 8', 'vf8', 'f-max', 'f max',
   ].some((term) => text.includes(term));
 }
 
@@ -378,7 +583,7 @@ function modelsFromBundle(bundle) {
       type: 'Public source model',
       detail: `Open ${bundle.name} source details for ${text}.`,
       imageUrl: images[index % Math.max(images.length, 1)]?.url || images[0]?.url || '',
-      comparePrompt: `Compare ${text} with another ${bundle.name} or UAE automotive model in AED`,
+      comparePrompt: `Compare ${text} with another ${bundle.name} model`,
       sourceUrl: link.url || bundle.url,
     });
   });
@@ -390,7 +595,7 @@ function modelsFromBundle(bundle) {
       type: 'Brand source',
       detail: `Browse live ${bundle.name} source information.`,
       imageUrl: images[0]?.url || '',
-      comparePrompt: `Compare ${bundle.name} models in AED`,
+      comparePrompt: `Compare ${bundle.name} models`,
       sourceUrl: bundle.url,
     });
   }
@@ -428,14 +633,23 @@ function inferComparedVehicles(message) {
 
 function imageForVehicle(vehicle, sources) {
   const name = `${vehicle.brand || ''} ${vehicle.model || vehicle.name || ''}`.toLowerCase();
-  const matched = sources.find((source) => {
-    const haystack = `${source.name || ''} ${source.snippet || ''}`.toLowerCase();
-    return source.thumbnailUrl && name.split(/\s+/).filter((word) => word.length > 2).some((word) => haystack.includes(word));
+  const modelMatch = SHOWROOM_MODELS.find((item) => {
+    const haystack = `${item.brand} ${item.model}`.toLowerCase();
+    return name.includes(item.model.toLowerCase()) || haystack.includes(name) || item.model.toLowerCase().split(/\s+/).some((word) => word.length > 2 && name.includes(word));
   });
-  if (matched?.thumbnailUrl) return matched.thumbnailUrl;
+  if (modelMatch?.imageUrl) return modelMatch.imageUrl;
 
-  const anyImage = sources.find((source) => source.thumbnailUrl);
-  return anyImage?.thumbnailUrl || '';
+  const brandMatch = SHOWROOM_MODELS.find((item) => name.includes(item.brand.toLowerCase()));
+  return brandMatch?.imageUrl || SHOWROOM_MODELS[0].imageUrl;
+}
+
+function fallbackDataForVehicle(value) {
+  const text = String(value || '').toLowerCase();
+  return FALLBACK_MODEL_CATALOG.find((item) => item.aliases.some((alias) => text.includes(alias))) || null;
+}
+
+function isMissingSourceValue(value) {
+  return !value || /not\s+(listed|available|verified)|unavailable|n\/a|unknown|not provided/i.test(String(value));
 }
 
 function escapeRegExp(value) {
@@ -447,12 +661,18 @@ function normalizeVehicle(vehicle, fallbackName, sources) {
   const brand = trimText(vehicle?.brand || rawName.split(' ')[0], 50);
   const model = trimText(vehicle?.model || rawName.replace(new RegExp(`^${escapeRegExp(brand)}\\s*`, 'i'), ''), 80) || rawName;
   const type = trimText(vehicle?.type || vehicle?.segment || 'Luxury vehicle', 60);
-  const specs = vehicle?.specs && typeof vehicle.specs === 'object' ? vehicle.specs : {};
+  const fallback = fallbackDataForVehicle(`${rawName} ${brand} ${model}`);
+  const specs = {
+    ...(fallback?.specs || {}),
+    ...(vehicle?.specs && typeof vehicle.specs === 'object'
+      ? Object.fromEntries(Object.entries(vehicle.specs).filter(([, value]) => !isMissingSourceValue(value)))
+      : {}),
+  };
   const normalized = { name: rawName, brand, model, type, specs };
   return {
     ...normalized,
-    imageUrl: trimText(vehicle?.imageUrl || vehicle?.image || '', 600) || imageForVehicle(normalized, sources),
-    highlight: trimText(vehicle?.highlight || vehicle?.bestFor || 'Source-led showroom fit', 100),
+    imageUrl: imageForVehicle(normalized, sources),
+    highlight: trimText(vehicle?.highlight || vehicle?.bestFor || 'Premium showroom fit', 100),
   };
 }
 
@@ -486,10 +706,12 @@ function normalizeComparison(raw, message, sources) {
   const rowLabels = ['Engine', 'Top speed', '0-100 km/h', 'Estimated price', 'Best fit'];
   const normalizeRowValue = (label, value, index) => {
     const cleaned = trimText(value, 90);
+    const fallbackValue = trimText(normalizedVehicles[index].specs?.[label], 90);
+    if (isMissingSourceValue(cleaned)) return fallbackValue || 'Not verified';
     if (/price/i.test(label) && (!/AED/i.test(cleaned) || /USD|\$/i.test(cleaned))) {
-      return trimText(normalizedVehicles[index].specs?.['Estimated price'], 90) || 'Not verified';
+      return fallbackValue || 'Not verified';
     }
-    return cleaned || trimText(normalizedVehicles[index].specs?.[label], 90) || 'Not verified';
+    return cleaned || fallbackValue || 'Not verified';
   };
   const rows = Array.isArray(raw?.rows) && raw.rows.length
     ? raw.rows.slice(0, 8).map((row) => ({
@@ -519,17 +741,19 @@ function normalizeComparison(raw, message, sources) {
   };
 }
 
-async function buildStructuredComparison(message, context, sourceBundles) {
+async function buildStructuredComparison(message, context, sourceBundles, searchSources = []) {
   const sourceText = sourceBundles.length
     ? sourceBundles.map((source, index) => {
       const details = (source.details || []).map((detail, detailIndex) => (
-        `[${index + 1}.${detailIndex + 1}] ${detail.title}\n${detail.url}\n${trimText(detail.text, 1800)}\nImages: ${(detail.images || []).slice(0, 5).map((image) => image.url).join(', ')}`
+        `[${index + 1}.${detailIndex + 1}] ${detail.title}\n${detail.url}\n${trimText(detail.text, 1800)}`
       )).join('\n\n');
-      return `[${index + 1}] ${source.title}\n${source.url}\n${trimText(source.text, 1800)}\nImages: ${(source.images || []).slice(0, 8).map((image) => image.url).join(', ')}\nModel links: ${(source.links || []).slice(0, 10).map((link) => `${link.text} ${link.url}`).join(' | ')}\n\n${details}`;
+      return `[${index + 1}] ${source.title}\n${source.url}\n${trimText(source.text, 1800)}\nModel links: ${(source.links || []).slice(0, 10).map((link) => `${link.text} ${link.url}`).join(' | ')}\n\n${details}`;
     }).join('\n\n')
+    : searchSources.length
+      ? searchSources.map((source, index) => `[${index + 1}] ${source.name}\n${source.url}\n${source.snippet}`).join('\n\n')
     : 'No public source pages could be fetched. Return a useful structure but mark unavailable facts as "Not listed on source".';
   const messages = [
-    { role: 'system', content: `${SYSTEM_PROMPT}\nReturn only valid JSON for the UI. Do not wrap in markdown. Use only the supplied source pages for prices, specifications, model names, and image URLs. All prices must be AED only. If the source does not list a price or spec, write "Not listed on source" rather than guessing.` },
+    { role: 'system', content: `${SYSTEM_PROMPT}\nReturn only valid JSON for the UI. Do not wrap in markdown. Use the supplied source pages first for prices, specifications, and model names. If the source does not list a price or spec, write "Not listed on source" so the application can use its fallback dataset.` },
     { role: 'system', content: context.text ? `Showroom context:\n${context.text}` : 'No uploaded showroom context is available yet.' },
     { role: 'system', content: `Live source context:\n${sourceText}` },
     {
@@ -650,15 +874,13 @@ app.http('showroom-models', {
   route: 'at-motors/showroom-models',
   handler: async (request, context) => {
     try {
-      const sources = configuredSourceRegistry().slice(0, 12);
-      const bundles = (await Promise.all(sources.map((source) => (
-        fetchBundleForSource(source, source.aliases.slice(0, 8).map((alias) => alias.toLowerCase()))
-      )))).filter(Boolean).slice(0, 8);
-      const vehicles = bundles.flatMap(modelsFromBundle).filter((item) => item.imageUrl).slice(0, 12);
-      return ok({ vehicles, sources: bundles.map((bundle) => ({ name: bundle.name, url: bundle.url })) });
+      return ok({
+        vehicles: SHOWROOM_MODELS,
+        sources: configuredSourceRegistry().map((source) => ({ name: source.brand, url: source.url })),
+      });
     } catch (error) {
       log(context, 'warn', 'Showroom models failed', { error: error.message });
-      return ok({ vehicles: [], sources: [] });
+      return ok({ vehicles: SHOWROOM_MODELS, sources: [] });
     }
   },
 });
@@ -772,11 +994,17 @@ app.http('comparison', {
         log(context, 'warn', 'Public source fetch failed', { error: error.message });
         return [];
       });
-      const sources = flattenSourceBundles(sourceBundles);
+      let sources = flattenSourceBundles(sourceBundles);
+      if (!sources.length) {
+        sources = await searchCarSources(`${message} UAE price official specs engine top speed 0-100`).catch((error) => {
+          log(context, 'warn', 'Fallback web search failed', { error: error.message });
+          return [];
+        });
+      }
 
       let raw = null;
       try {
-        raw = await buildStructuredComparison(message, docContext, sourceBundles);
+        raw = await buildStructuredComparison(message, docContext, sourceBundles, sources);
       } catch (error) {
         log(context, 'warn', 'Structured comparison failed', { error: error.message });
       }
