@@ -15,6 +15,8 @@ Represent a premium showroom with Ferrari, Ford Mustang performance, Maserati, D
 Use the supplied showroom context first. If context is missing, say so briefly and give a helpful next step.
 Keep answers polished, concise, and sales-useful.
 When comparison is requested, compare performance, comfort, ownership fit, budget tier, and appointment next step.
+Always present pricing in UAE dirhams/AED only, never USD.
+Use English only.
 Never invent exact inventory availability.
 Strictly refuse non-automotive topics and redirect the user back to cars, automotive ownership, finance, test drives, showroom bookings, or AT MOTORS.`;
 
@@ -24,7 +26,7 @@ const IMAGE_CATALOG = [
     imageUrl: 'https://images.unsplash.com/photo-1556516731-779d3492975b?auto=format&fit=crop&q=90&w=2200',
   },
   {
-    aliases: ['ford', 'mustang', 'gt', 'shelby', 'dark horse'],
+    aliases: ['ford', 'mustang', 'shelby', 'dark horse'],
     imageUrl: 'https://images.unsplash.com/photo-1561535743-c82c241502d5?auto=format&fit=crop&q=90&w=2200',
   },
   {
@@ -69,6 +71,99 @@ const IMAGE_CATALOG = [
   },
 ];
 
+const VEHICLE_CATALOG = [
+  {
+    aliases: ['ferrari', 'sf90', 'sf90 stradale'],
+    name: 'Ferrari SF90 Stradale',
+    brand: 'Ferrari',
+    model: 'SF90 Stradale',
+    type: 'Hybrid supercar',
+    highlight: 'Maximum theatre, hybrid power, collector-grade showroom drama',
+    specs: {
+      Engine: '4.0L twin-turbo V8 plug-in hybrid, 986 hp',
+      'Top speed': '340 km/h',
+      '0-100 km/h': '2.5s approx.',
+      'Estimated price': 'AED 2,000,500 new; AED 1.24M+ used approx.',
+      'Best fit': 'Clients prioritising emotion, rarity, speed, and prestige',
+    },
+  },
+  {
+    aliases: ['ford', 'mustang', 'mustang gt', 'gt premium', 'dark horse'],
+    name: 'Ford Mustang GT',
+    brand: 'Ford',
+    model: 'Mustang GT',
+    type: 'Performance coupe',
+    highlight: 'V8 character, accessible ownership, strong AED value',
+    specs: {
+      Engine: '5.0L V8, 486 hp approx.',
+      'Top speed': '250-290 km/h approx.',
+      '0-100 km/h': '4.3s approx.',
+      'Estimated price': 'AED 255,000-279,195 approx.',
+      'Best fit': 'Drivers wanting theatre and daily usability without supercar pricing',
+    },
+  },
+  {
+    aliases: ['maserati', 'granturismo', 'trofeo', 'mc20'],
+    name: 'Maserati GranTurismo Trofeo',
+    brand: 'Maserati',
+    model: 'GranTurismo Trofeo',
+    type: 'Luxury grand tourer',
+    highlight: 'Italian elegance, long-distance comfort, refined pace',
+    specs: {
+      Engine: '3.0L twin-turbo V6, 542 hp approx.',
+      'Top speed': '320 km/h approx.',
+      '0-100 km/h': '3.5s approx.',
+      'Estimated price': 'AED 820,000-979,000 approx.',
+      'Best fit': 'Buyers who want luxury presence and touring comfort with speed',
+    },
+  },
+  {
+    aliases: ['deepal', 's07', 'deepal s07', 'changan'],
+    name: 'Deepal S07',
+    brand: 'Deepal',
+    model: 'S07',
+    type: 'Smart EV SUV',
+    highlight: 'Technology-led cabin, quiet commuting, accessible premium EV feel',
+    specs: {
+      Engine: 'REEV or BEV powertrain, 214-234 hp approx.',
+      'Top speed': '200 km/h approx.',
+      '0-100 km/h': '6.7-7.9s approx.',
+      'Estimated price': 'AED 119,900-149,900 approx.',
+      'Best fit': 'Tech-first families wanting premium screens and efficient AED ownership',
+    },
+  },
+  {
+    aliases: ['porsche', '911', 'carrera gts', '911 gts'],
+    name: 'Porsche 911 Carrera GTS',
+    brand: 'Porsche',
+    model: '911 Carrera GTS',
+    type: 'T-Hybrid sports car',
+    highlight: 'Precision handling, daily usability, benchmark sports-car engineering',
+    specs: {
+      Engine: '3.6L T-Hybrid flat-six, 541 PS',
+      'Top speed': '312 km/h',
+      '0-100 km/h': '3.0s',
+      'Estimated price': 'AED 689,800 approx.',
+      'Best fit': 'Drivers wanting the sharpest balance of comfort, speed, and control',
+    },
+  },
+  {
+    aliases: ['tesla', 'model s', 'model s plaid', 'plaid'],
+    name: 'Tesla Model S Plaid',
+    brand: 'Tesla',
+    model: 'Model S Plaid',
+    type: 'Electric performance sedan',
+    highlight: 'Extreme EV acceleration, quiet cabin, digital-first ownership',
+    specs: {
+      Engine: 'Tri-motor electric AWD, 1,020 hp approx.',
+      'Top speed': '322 km/h approx.',
+      '0-100 km/h': '2.1s approx.',
+      'Estimated price': 'AED 374,990 approx.',
+      'Best fit': 'Clients wanting silent acceleration and everyday EV practicality',
+    },
+  },
+];
+
 function isAutomotiveTopic(message) {
   const text = String(message || '').toLowerCase();
   return [
@@ -76,8 +171,9 @@ function isAutomotiveTopic(message) {
     'engine', 'speed', 'drive', 'driving', 'luxury', 'supercar', 'sedan', 'suv',
     'coupe', 'convertible', 'horsepower', 'hp', 'torque', '0-100', '0 to 100',
     'price', 'finance', 'booking', 'viewing', 'test drive', 'compare',
-    'ferrari', 'ford', 'mustang', 'maserati', 'porsche', 'lucid', 'mercedes',
-    'bmw', 'audi', 'tesla', 'lamborghini', 'bentley', 'rolls', 'deepal',
+    'ferrari', 'sf90', 'roma', '296', 'ford', 'mustang', 'maserati', 'mc20',
+    'granturismo', 'trofeo', 'porsche', '911', 'taycan', 'lucid', 'mercedes',
+    'bmw', 'audi', 'tesla', 'model s', 'lamborghini', 'bentley', 'rolls', 'deepal', 's07',
   ].some((term) => text.includes(term));
 }
 
@@ -163,11 +259,11 @@ function extractJsonObject(value) {
 
 function inferComparedVehicles(message) {
   const text = trimText(message, 300)
-    .replace(/\b(compare|comparison|between|please|can you|show me|cars?|vehicles?)\b/gi, ' ')
+    .replace(/\b(compare|comparison|between|please|can you|show me|cars?|vehicles?|which|one|is|better|recommend|choose)\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
   const parts = text
-    .split(/\s+(?:vs\.?|versus|and|with|against)\s+/i)
+    .split(/\s+(?:vs\.?|versus|and|or|with|against)\s+/i)
     .map((part) => part.replace(/[?.!,]/g, '').trim())
     .filter(Boolean);
   return parts.length >= 2 ? parts.slice(0, 2) : ['Vehicle A', 'Vehicle B'];
@@ -187,21 +283,31 @@ function imageForVehicle(vehicle, sources) {
   return 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=90&w=2200';
 }
 
+function catalogForVehicle(value) {
+  const text = String(value || '').toLowerCase();
+  return VEHICLE_CATALOG.find((item) => item.aliases.some((alias) => text.includes(alias))) || null;
+}
+
 function escapeRegExp(value) {
   return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function normalizeVehicle(vehicle, fallbackName, sources) {
   const rawName = trimText(vehicle?.name || fallbackName, 80) || fallbackName;
-  const brand = trimText(vehicle?.brand || rawName.split(' ')[0], 50);
-  const model = trimText(vehicle?.model || rawName.replace(new RegExp(`^${escapeRegExp(brand)}\\s*`, 'i'), ''), 80) || rawName;
-  const type = trimText(vehicle?.type || vehicle?.segment || 'Luxury vehicle', 60);
-  const specs = vehicle?.specs && typeof vehicle.specs === 'object' ? vehicle.specs : {};
+  const catalog = catalogForVehicle(`${rawName} ${vehicle?.brand || ''} ${vehicle?.model || ''}`);
+  const brand = trimText(vehicle?.brand || catalog?.brand || rawName.split(' ')[0], 50);
+  const model = trimText(vehicle?.model || catalog?.model || rawName.replace(new RegExp(`^${escapeRegExp(brand)}\\s*`, 'i'), ''), 80) || rawName;
+  const type = trimText(vehicle?.type || vehicle?.segment || catalog?.type || 'Luxury vehicle', 60);
+  const specs = {
+    ...(catalog?.specs || {}),
+    ...(vehicle?.specs && typeof vehicle.specs === 'object' ? vehicle.specs : {}),
+  };
   const normalized = { name: rawName, brand, model, type, specs };
   return {
     ...normalized,
+    name: catalog?.name || rawName,
     imageUrl: trimText(vehicle?.imageUrl || vehicle?.image || '', 600) || imageForVehicle(normalized, sources),
-    highlight: trimText(vehicle?.highlight || vehicle?.bestFor || 'Private showroom fit', 100),
+    highlight: trimText(vehicle?.highlight || vehicle?.bestFor || catalog?.highlight || 'Private showroom fit', 100),
   };
 }
 
@@ -210,12 +316,16 @@ function fallbackComparison(message, sources = []) {
   const vehicles = names.map((name) => normalizeVehicle({ name }, name, sources));
   return {
     title: `${vehicles[0].name} vs ${vehicles[1].name}`,
-    summary: 'I can stage the comparison now and enrich the numbers through the configured GPT chat model when available.',
+    summary: 'A curated AT MOTORS prototype dossier with AED market-oriented values and showroom-ready positioning.',
     vehicles,
     rows: ['Engine', 'Top speed', '0-100 km/h', 'Estimated price', 'Best fit'].map((label) => ({
       label,
-      values: ['Awaiting verified data', 'Awaiting verified data'],
+      values: [
+        trimText(vehicles[0].specs?.[label], 90) || 'Not verified',
+        trimText(vehicles[1].specs?.[label], 90) || 'Not verified',
+      ],
     })),
+    recommendation: 'Use the table to qualify budget, driving style, and test-drive priority before booking a private viewing.',
     sources,
   };
 }
@@ -229,14 +339,21 @@ function normalizeComparison(raw, message, sources) {
   ];
 
   const rowLabels = ['Engine', 'Top speed', '0-100 km/h', 'Estimated price', 'Best fit'];
+  const normalizeRowValue = (label, value, index) => {
+    const cleaned = trimText(value, 90);
+    if (/price/i.test(label) && (!/AED/i.test(cleaned) || /USD|\$/i.test(cleaned))) {
+      return trimText(normalizedVehicles[index].specs?.['Estimated price'], 90) || 'Not verified';
+    }
+    return cleaned || trimText(normalizedVehicles[index].specs?.[label], 90) || 'Not verified';
+  };
   const rows = Array.isArray(raw?.rows) && raw.rows.length
     ? raw.rows.slice(0, 8).map((row) => ({
       label: trimText(row.label, 40),
       values: Array.isArray(row.values)
-        ? row.values.slice(0, 2).map((value) => trimText(value, 80) || 'Not verified')
+        ? row.values.slice(0, 2).map((value, index) => normalizeRowValue(trimText(row.label, 40), value, index))
         : [
-          trimText(row.left || row.a || '', 80) || 'Not verified',
-          trimText(row.right || row.b || '', 80) || 'Not verified',
+          normalizeRowValue(trimText(row.label, 40), row.left || row.a || '', 0),
+          normalizeRowValue(trimText(row.label, 40), row.right || row.b || '', 1),
         ],
     })).filter((row) => row.label)
     : rowLabels.map((label) => ({
@@ -262,7 +379,7 @@ async function buildStructuredComparison(message, context, sources) {
     ? sources.map((source, index) => `[${index + 1}] ${source.name}\n${source.url}\n${source.snippet}`).join('\n\n')
     : 'No web search sources are configured. Use general automotive knowledge, keep values realistic, and mark approximate values with "approx." when needed.';
   const messages = [
-    { role: 'system', content: `${SYSTEM_PROMPT}\nReturn only valid JSON for the UI. Do not wrap in markdown. Use concise, realistic automotive data suitable for a luxury comparison UI. Mark uncertain specs as "approx." rather than pretending exact inventory data.` },
+    { role: 'system', content: `${SYSTEM_PROMPT}\nReturn only valid JSON for the UI. Do not wrap in markdown. Use concise, realistic automotive data suitable for a luxury comparison UI. All prices must be AED only. Mark uncertain specs as "approx." rather than pretending exact inventory data.` },
     { role: 'system', content: context.text ? `Showroom context:\n${context.text}` : 'No uploaded showroom context is available yet.' },
     { role: 'system', content: `Live source context:\n${sourceText}` },
     {
@@ -429,7 +546,7 @@ app.http('chat', {
       const docContext = await getDocumentContext();
       let sources = [];
       if (needsLiveCarSearch(message)) {
-        sources = await searchCarSources(`${message} official specs engine top speed 0-100 price`).catch((error) => {
+        sources = await searchCarSources(`${message} UAE AED price official specs engine top speed 0-100`).catch((error) => {
           log(context, 'warn', 'Bing grounding failed', { error: error.message });
           return [];
         });
