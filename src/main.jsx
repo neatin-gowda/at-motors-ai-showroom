@@ -24,12 +24,14 @@ const showroomScenes = [
   },
 ];
 
+const FALLBACK_CAR_IMAGE = 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=90&w=1600';
+
 const LOCAL_SHOWROOM_MODELS = [
-  ['Ford', 'Mustang GT', 'Performance coupe', 'V8 theatre with daily usability and strong showroom appeal.', 'https://commons.wikimedia.org/wiki/Special:FilePath/Ford_Mustang_GT_%282024%29_%2853800122142%29.jpg?width=1600', 'Compare Ford Mustang GT and Maserati MC20'],
-  ['Jaguar', 'F-Pace', 'Luxury performance SUV', 'British performance SUV with a premium road presence.', 'https://commons.wikimedia.org/wiki/Special:FilePath/Jaguar-F-Pace.png?width=1600', 'Compare Jaguar F-Pace and Land Rover Defender'],
-  ['Land Rover', 'Defender', 'Luxury 4x4', 'Iconic capability with premium all-terrain character.', 'https://commons.wikimedia.org/wiki/Special:FilePath/2020_Land_Rover_Defender.jpg?width=1600', 'Compare Land Rover Defender and Ford Mustang GT'],
-  ['Maserati', 'MC20', 'Italian supercar', 'Low-slung Italian performance with exotic showroom theatre.', 'https://commons.wikimedia.org/wiki/Special:FilePath/Maserati_MC20.jpg?width=1600', 'Compare Maserati MC20 and Ferrari 296 GTB'],
-  ['Ferrari', '296 GTB', 'Hybrid supercar', 'Compact Ferrari hybrid performance with intense emotional pull.', 'https://commons.wikimedia.org/wiki/Special:FilePath/Ferrari_296_GTB.jpg?width=1600', 'Compare Ferrari 296 GTB and Maserati MC20'],
+  ['Ford', 'Mustang GT', 'Performance coupe', 'V8 theatre with daily usability and strong showroom appeal.', 'https://images.unsplash.com/photo-1561535743-c82c241502d5?auto=format&fit=crop&q=90&w=1600', 'Compare Ford Mustang GT and Maserati MC20'],
+  ['Jaguar', 'F-Pace', 'Luxury performance SUV', 'British performance SUV with a premium road presence.', 'https://images.unsplash.com/photo-1619767886558-efdc259cde1a?auto=format&fit=crop&q=90&w=1600', 'Compare Jaguar F-Pace and Land Rover Defender'],
+  ['Land Rover', 'Defender', 'Luxury 4x4', 'Iconic capability with premium all-terrain character.', 'https://images.unsplash.com/photo-1609521263047-f8f205293f24?auto=format&fit=crop&q=90&w=1600', 'Compare Land Rover Defender and Ford Mustang GT'],
+  ['Maserati', 'MC20', 'Italian supercar', 'Low-slung Italian performance with exotic showroom theatre.', 'https://images.unsplash.com/photo-1756548843479-3783100b3447?auto=format&fit=crop&q=90&w=1600', 'Compare Maserati MC20 and Ferrari 296 GTB'],
+  ['Ferrari', '296 GTB', 'Hybrid supercar', 'Compact Ferrari hybrid performance with intense emotional pull.', 'https://images.unsplash.com/photo-1556516731-779d3492975b?auto=format&fit=crop&q=90&w=1600', 'Compare Ferrari 296 GTB and Maserati MC20'],
 ].map(([brand, model, type, detail, imageUrl, comparePrompt]) => ({ brand, model, type, detail, imageUrl, comparePrompt }));
 
 const automotiveTerms = [
@@ -139,6 +141,11 @@ function cleanDisplayText(value, options = {}) {
 }
 
 function HologramRail({ vehicles, onInspect }) {
+  const handleImageError = (event) => {
+    event.currentTarget.onerror = null;
+    event.currentTarget.src = FALLBACK_CAR_IMAGE;
+  };
+
   return (
     <div className="holoRail" aria-label="Featured vehicles">
       {!vehicles.length && <div className="holoLoading">Loading live showroom models</div>}
@@ -150,7 +157,7 @@ function HologramRail({ vehicles, onInspect }) {
           type="button"
           onClick={() => onInspect(vehicle)}
         >
-          <img src={vehicle.imageUrl} alt={`${vehicle.brand} ${vehicle.model}`} />
+          <img src={vehicle.imageUrl} alt={`${vehicle.brand} ${vehicle.model}`} onError={handleImageError} />
           <span>{vehicle.brand}</span>
           <small>{vehicle.model}</small>
           <em>{vehicle.type}</em>
@@ -177,7 +184,16 @@ function ComparisonStage({ comparison, loading, onDownload }) {
       </div>
       {[left, right].map((car, index) => (
         <article className={`comparePanel ${index === 0 ? 'fromLeft' : 'fromRight'}`} key={`${car.name}-${index}`}>
-          {car.imageUrl ? <img src={car.imageUrl} alt={car.name} /> : <div className="imageFallback">{car.brand}</div>}
+          {car.imageUrl ? (
+            <img
+              src={car.imageUrl}
+              alt={car.name}
+              onError={(event) => {
+                event.currentTarget.onerror = null;
+                event.currentTarget.src = FALLBACK_CAR_IMAGE;
+              }}
+            />
+          ) : <div className="imageFallback">{car.brand}</div>}
           <div className="motionLine" />
           <div className="compareTitle">
             <span>{car.type}</span>
