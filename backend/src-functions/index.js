@@ -54,7 +54,7 @@ const SHOWROOM_MODELS = [
     model: 'Mustang GT',
     type: 'Performance coupe',
     detail: 'V8 theatre with daily usability and strong showroom appeal.',
-    imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Ford_Mustang_GT_%282024%29_%2853800122142%29.jpg?width=1600',
+    imageUrl: 'https://images.unsplash.com/photo-1561535743-c82c241502d5?auto=format&fit=crop&q=90&w=1600',
     comparePrompt: 'Compare Ford Mustang GT and Maserati MC20',
   },
   {
@@ -62,7 +62,7 @@ const SHOWROOM_MODELS = [
     model: 'F-Pace',
     type: 'Luxury performance SUV',
     detail: 'British performance SUV with a premium road presence.',
-    imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Jaguar-F-Pace.png?width=1600',
+    imageUrl: 'https://images.unsplash.com/photo-1619767886558-efdc259cde1a?auto=format&fit=crop&q=90&w=1600',
     comparePrompt: 'Compare Jaguar F-Pace and Land Rover Defender',
   },
   {
@@ -70,7 +70,7 @@ const SHOWROOM_MODELS = [
     model: 'Defender',
     type: 'Luxury 4x4',
     detail: 'Iconic capability with premium all-terrain character.',
-    imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/2020_Land_Rover_Defender.jpg?width=1600',
+    imageUrl: 'https://images.unsplash.com/photo-1609521263047-f8f205293f24?auto=format&fit=crop&q=90&w=1600',
     comparePrompt: 'Compare Land Rover Defender and Ford Mustang GT',
   },
   {
@@ -78,7 +78,7 @@ const SHOWROOM_MODELS = [
     model: 'MC20',
     type: 'Italian supercar',
     detail: 'Low-slung Italian performance with exotic showroom theatre.',
-    imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Maserati_MC20.jpg?width=1600',
+    imageUrl: 'https://images.unsplash.com/photo-1756548843479-3783100b3447?auto=format&fit=crop&q=90&w=1600',
     comparePrompt: 'Compare Maserati MC20 and Ferrari 296 GTB',
   },
   {
@@ -86,7 +86,7 @@ const SHOWROOM_MODELS = [
     model: '296 GTB',
     type: 'Hybrid supercar',
     detail: 'Compact Ferrari hybrid performance with intense emotional pull.',
-    imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Ferrari_296_GTB.jpg?width=1600',
+    imageUrl: 'https://images.unsplash.com/photo-1556516731-779d3492975b?auto=format&fit=crop&q=90&w=1600',
     comparePrompt: 'Compare Ferrari 296 GTB and Maserati MC20',
   },
 ];
