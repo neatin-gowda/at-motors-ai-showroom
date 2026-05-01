@@ -25,16 +25,11 @@ const showroomScenes = [
 ];
 
 const LOCAL_SHOWROOM_MODELS = [
-  ['Ford', 'Mustang GT', 'Performance coupe', 'V8 theatre with daily usability and strong showroom appeal.', 'https://images.unsplash.com/photo-1561535743-c82c241502d5?auto=format&fit=crop&q=90&w=1400', 'Compare Ford Mustang GT and Maserati GranTurismo Trofeo'],
-  ['Ford', 'Bronco', 'Adventure SUV', 'Rugged lifestyle SUV for off-road style and weekend capability.', 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&q=90&w=1400', 'Compare Ford Bronco and Land Rover Defender'],
-  ['Lincoln', 'Aviator', 'Luxury SUV', 'Quiet premium family SUV with a soft luxury cabin feel.', 'https://images.unsplash.com/photo-1605893477799-b99e3b8b93fe?auto=format&fit=crop&q=90&w=1400', 'Compare Lincoln Aviator and Land Rover Discovery'],
-  ['Jaguar', 'F-Pace', 'Luxury performance SUV', 'British performance SUV with a premium road presence.', 'https://images.unsplash.com/photo-1619767886558-efdc259cde1a?auto=format&fit=crop&q=90&w=1400', 'Compare Jaguar F-Pace and Maserati Grecale'],
-  ['Land Rover', 'Defender', 'Luxury 4x4', 'Iconic capability with premium all-terrain character.', 'https://images.unsplash.com/photo-1609521263047-f8f205293f24?auto=format&fit=crop&q=90&w=1400', 'Compare Land Rover Defender and Ford Bronco'],
-  ['Maserati', 'MC20', 'Italian supercar', 'Low-slung Italian performance with exotic showroom theatre.', 'https://images.unsplash.com/photo-1756548843479-3783100b3447?auto=format&fit=crop&q=90&w=1400', 'Compare Maserati MC20 and Ferrari 296 GTB'],
-  ['Ferrari', '296 GTB', 'Hybrid supercar', 'Compact Ferrari hybrid performance with intense emotional pull.', 'https://images.unsplash.com/photo-1556516731-779d3492975b?auto=format&fit=crop&q=90&w=1400', 'Compare Ferrari 296 GTB and Maserati MC20'],
-  ['VinFast', 'VF 8', 'Electric SUV', 'Modern EV SUV with practical premium positioning.', 'https://images.unsplash.com/photo-1593941707882-a5bba53b0998?auto=format&fit=crop&q=90&w=1400', 'Compare VinFast VF 8 and Deepal S07'],
-  ['Deepal', 'S07', 'Smart EV SUV', 'Tech-forward SUV choice with premium screens and quiet commuting.', 'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&q=90&w=1400', 'Compare Deepal S07 and VinFast VF 8'],
-  ['Ford Trucks', 'F-MAX', 'Heavy truck', 'Commercial long-haul capability for fleet and logistics decisions.', 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&q=90&w=1400', 'Compare Ford Trucks F-MAX and Ford Trucks Cargo'],
+  ['Ford', 'Mustang GT', 'Performance coupe', 'V8 theatre with daily usability and strong showroom appeal.', 'https://commons.wikimedia.org/wiki/Special:FilePath/Ford_Mustang_GT_%282024%29_%2853800122142%29.jpg?width=1600', 'Compare Ford Mustang GT and Maserati MC20'],
+  ['Jaguar', 'F-Pace', 'Luxury performance SUV', 'British performance SUV with a premium road presence.', 'https://commons.wikimedia.org/wiki/Special:FilePath/Jaguar-F-Pace.png?width=1600', 'Compare Jaguar F-Pace and Land Rover Defender'],
+  ['Land Rover', 'Defender', 'Luxury 4x4', 'Iconic capability with premium all-terrain character.', 'https://commons.wikimedia.org/wiki/Special:FilePath/2020_Land_Rover_Defender.jpg?width=1600', 'Compare Land Rover Defender and Ford Mustang GT'],
+  ['Maserati', 'MC20', 'Italian supercar', 'Low-slung Italian performance with exotic showroom theatre.', 'https://commons.wikimedia.org/wiki/Special:FilePath/Maserati_MC20.jpg?width=1600', 'Compare Maserati MC20 and Ferrari 296 GTB'],
+  ['Ferrari', '296 GTB', 'Hybrid supercar', 'Compact Ferrari hybrid performance with intense emotional pull.', 'https://commons.wikimedia.org/wiki/Special:FilePath/Ferrari_296_GTB.jpg?width=1600', 'Compare Ferrari 296 GTB and Maserati MC20'],
 ].map(([brand, model, type, detail, imageUrl, comparePrompt]) => ({ brand, model, type, detail, imageUrl, comparePrompt }));
 
 const automotiveTerms = [
