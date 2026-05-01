@@ -11,7 +11,7 @@ const {
 } = require('./shared');
 
 const SYSTEM_PROMPT = `You are the AT MOTORS luxury automotive AI concierge.
-Represent a premium showroom with Ferrari, Ford Mustang performance, Maserati, Deepal EV, and other luxury or performance vehicles when requested.
+Represent a premium showroom with Ferrari, Ford, Lincoln, Jaguar, Land Rover, Maserati, VinFast, Deepal, Ford Trucks, Tesla, Mercedes-Benz, Volvo, Toyota, and other automotive brands when requested.
 Use the supplied showroom context first. If context is missing, say so briefly and give a helpful next step.
 Keep answers polished, concise, and sales-useful.
 When comparison is requested, compare performance, comfort, ownership fit, budget tier, and appointment next step.
@@ -20,149 +20,86 @@ Use English only.
 Never invent exact inventory availability.
 Strictly refuse non-automotive topics and redirect the user back to cars, automotive ownership, finance, test drives, showroom bookings, or AT MOTORS.`;
 
-const IMAGE_CATALOG = [
+const SOURCE_REGISTRY = [
   {
-    aliases: ['ferrari', 'sf90', 'roma', '296', 'purosangue'],
-    imageUrl: 'https://images.unsplash.com/photo-1556516731-779d3492975b?auto=format&fit=crop&q=90&w=2200',
+    brand: 'Ford',
+    aliases: ['ford', 'mustang', 'bronco', 'explorer', 'expedition', 'everest', 'territory', 'taurus', 'ranger', 'f-150'],
+    url: 'https://www.altayermotors.com/ford/',
   },
   {
-    aliases: ['ford', 'mustang', 'shelby', 'dark horse'],
-    imageUrl: 'https://images.unsplash.com/photo-1561535743-c82c241502d5?auto=format&fit=crop&q=90&w=2200',
+    brand: 'Lincoln',
+    aliases: ['lincoln', 'navigator', 'aviator', 'corsair', 'nautilus'],
+    url: 'https://www.altayermotors.com/lincoln/',
   },
   {
-    aliases: ['maserati', 'mc20', 'granturismo', 'grecale', 'levante'],
-    imageUrl: 'https://images.unsplash.com/photo-1756548843479-3783100b3447?auto=format&fit=crop&q=90&w=2200',
+    brand: 'Jaguar',
+    aliases: ['jaguar', 'f-pace', 'f pace', 'i-pace', 'i pace', 'f-type', 'f type'],
+    url: 'https://www.altayermotors.com/jaguar/',
   },
   {
-    aliases: ['deepal', 's07', 'sl03', 'changan'],
-    imageUrl: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&q=90&w=2200',
+    brand: 'Land Rover',
+    aliases: ['land rover', 'range rover', 'defender', 'discovery', 'velar', 'evoque'],
+    url: 'https://www.altayermotors.com/land-rover/',
   },
   {
-    aliases: ['porsche', '911', 'taycan', 'cayenne', 'panamera'],
-    imageUrl: 'https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&q=90&w=2200',
+    brand: 'Maserati',
+    aliases: ['maserati', 'mc20', 'granturismo', 'grecale', 'levante', 'ghibli', 'quattroporte'],
+    url: 'https://www.altayermotors.com/maserati/',
   },
   {
-    aliases: ['tesla', 'model s', 'model 3', 'model x', 'model y'],
-    imageUrl: 'https://images.unsplash.com/photo-1560958089-b8a1929cea89?auto=format&fit=crop&q=90&w=2200',
+    brand: 'Ferrari',
+    aliases: ['ferrari', '849', 'testarossa', 'amalfi', '296', 'gtb', 'gts', '12cilindri', 'purosangue'],
+    url: 'https://www.altayermotors.com/ferrari/',
   },
   {
-    aliases: ['mercedes', 'benz', 'amg', 's-class', 'g-class', 'eqs'],
-    imageUrl: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&q=90&w=2200',
+    brand: 'VinFast',
+    aliases: ['vinfast', 'vf 6', 'vf6', 'vf 7', 'vf7', 'vf 8', 'vf8', 'vf 9', 'vf9'],
+    url: 'https://www.altayermotors.com/vinfast/',
   },
   {
-    aliases: ['bmw', 'm3', 'm4', 'm5', '7 series', 'i7'],
-    imageUrl: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&q=90&w=2200',
+    brand: 'Deepal',
+    aliases: ['deepal', 's07', 'sl03', 'g318', 'changan'],
+    url: 'https://www.altayermotors.com/deepal/',
   },
   {
-    aliases: ['audi', 'rs', 'r8', 'e-tron', 'q8'],
-    imageUrl: 'https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?auto=format&fit=crop&q=90&w=2200',
+    brand: 'Ford Trucks',
+    aliases: ['ford trucks', 'ford truck', 'f-max', 'f max', 'cargo'],
+    url: 'https://www.altayermotors.com/ford-trucks/',
   },
   {
-    aliases: ['lamborghini', 'huracan', 'urus', 'revuelto', 'aventador'],
-    imageUrl: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?auto=format&fit=crop&q=90&w=2200',
+    brand: 'Tesla',
+    aliases: ['tesla', 'model s', 'model 3', 'model x', 'model y', 'cybertruck'],
+    url: 'https://www.tesla.com/en_ae',
   },
   {
-    aliases: ['bentley', 'continental', 'bentayga', 'flying spur'],
-    imageUrl: 'https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?auto=format&fit=crop&q=90&w=2200',
+    brand: 'Mercedes-Benz',
+    aliases: ['mercedes', 'benz', 'mercedes-benz', 'amg', 's-class', 'g-class', 'eqs', 'gle', 'glc'],
+    url: 'https://www.mercedes-benz-mena.com/dubai/en/passengercars.html',
   },
   {
-    aliases: ['rolls', 'royce', 'ghost', 'phantom', 'cullinan'],
-    imageUrl: 'https://images.unsplash.com/photo-1563720360172-67b8f3dce741?auto=format&fit=crop&q=90&w=2200',
+    brand: 'Volvo',
+    aliases: ['volvo', 'xc40', 'xc60', 'xc90', 'ex30', 'ex40', 'ex90'],
+    url: 'https://www.volvocars.com/ae/',
+  },
+  {
+    brand: 'Toyota',
+    aliases: ['toyota', 'land cruiser', 'prado', 'camry', 'rav4', 'supra', 'hilux', 'fortuner'],
+    url: 'https://www.toyota.ae/',
   },
 ];
 
-const VEHICLE_CATALOG = [
-  {
-    aliases: ['ferrari', 'sf90', 'sf90 stradale'],
-    name: 'Ferrari SF90 Stradale',
-    brand: 'Ferrari',
-    model: 'SF90 Stradale',
-    type: 'Hybrid supercar',
-    highlight: 'Maximum theatre, hybrid power, collector-grade showroom drama',
-    specs: {
-      Engine: '4.0L twin-turbo V8 plug-in hybrid, 986 hp',
-      'Top speed': '340 km/h',
-      '0-100 km/h': '2.5s approx.',
-      'Estimated price': 'AED 2,000,500 new; AED 1.24M+ used approx.',
-      'Best fit': 'Clients prioritising emotion, rarity, speed, and prestige',
-    },
-  },
-  {
-    aliases: ['ford', 'mustang', 'mustang gt', 'gt premium', 'dark horse'],
-    name: 'Ford Mustang GT',
-    brand: 'Ford',
-    model: 'Mustang GT',
-    type: 'Performance coupe',
-    highlight: 'V8 character, accessible ownership, strong AED value',
-    specs: {
-      Engine: '5.0L V8, 486 hp approx.',
-      'Top speed': '250-290 km/h approx.',
-      '0-100 km/h': '4.3s approx.',
-      'Estimated price': 'AED 255,000-279,195 approx.',
-      'Best fit': 'Drivers wanting theatre and daily usability without supercar pricing',
-    },
-  },
-  {
-    aliases: ['maserati', 'granturismo', 'trofeo', 'mc20'],
-    name: 'Maserati GranTurismo Trofeo',
-    brand: 'Maserati',
-    model: 'GranTurismo Trofeo',
-    type: 'Luxury grand tourer',
-    highlight: 'Italian elegance, long-distance comfort, refined pace',
-    specs: {
-      Engine: '3.0L twin-turbo V6, 542 hp approx.',
-      'Top speed': '320 km/h approx.',
-      '0-100 km/h': '3.5s approx.',
-      'Estimated price': 'AED 820,000-979,000 approx.',
-      'Best fit': 'Buyers who want luxury presence and touring comfort with speed',
-    },
-  },
-  {
-    aliases: ['deepal', 's07', 'deepal s07', 'changan'],
-    name: 'Deepal S07',
-    brand: 'Deepal',
-    model: 'S07',
-    type: 'Smart EV SUV',
-    highlight: 'Technology-led cabin, quiet commuting, accessible premium EV feel',
-    specs: {
-      Engine: 'REEV or BEV powertrain, 214-234 hp approx.',
-      'Top speed': '200 km/h approx.',
-      '0-100 km/h': '6.7-7.9s approx.',
-      'Estimated price': 'AED 119,900-149,900 approx.',
-      'Best fit': 'Tech-first families wanting premium screens and efficient AED ownership',
-    },
-  },
-  {
-    aliases: ['porsche', '911', 'carrera gts', '911 gts'],
-    name: 'Porsche 911 Carrera GTS',
-    brand: 'Porsche',
-    model: '911 Carrera GTS',
-    type: 'T-Hybrid sports car',
-    highlight: 'Precision handling, daily usability, benchmark sports-car engineering',
-    specs: {
-      Engine: '3.6L T-Hybrid flat-six, 541 PS',
-      'Top speed': '312 km/h',
-      '0-100 km/h': '3.0s',
-      'Estimated price': 'AED 689,800 approx.',
-      'Best fit': 'Drivers wanting the sharpest balance of comfort, speed, and control',
-    },
-  },
-  {
-    aliases: ['tesla', 'model s', 'model s plaid', 'plaid'],
-    name: 'Tesla Model S Plaid',
-    brand: 'Tesla',
-    model: 'Model S Plaid',
-    type: 'Electric performance sedan',
-    highlight: 'Extreme EV acceleration, quiet cabin, digital-first ownership',
-    specs: {
-      Engine: 'Tri-motor electric AWD, 1,020 hp approx.',
-      'Top speed': '322 km/h approx.',
-      '0-100 km/h': '2.1s approx.',
-      'Estimated price': 'AED 374,990 approx.',
-      'Best fit': 'Clients wanting silent acceleration and everyday EV practicality',
-    },
-  },
-];
+function configuredSourceRegistry() {
+  const extra = extractJsonObject(process.env.AT_MOTORS_SOURCE_URLS);
+  if (!Array.isArray(extra)) return SOURCE_REGISTRY;
+  return [
+    ...SOURCE_REGISTRY,
+    ...extra.map((item) => ({
+      brand: trimText(item.brand, 80),
+      url: trimText(item.url, 500),
+      aliases: Array.isArray(item.aliases) ? item.aliases.map((alias) => trimText(alias, 60)).filter(Boolean) : [],
+    })).filter((item) => item.brand && item.url),
+  ];
+}
 
 function isAutomotiveTopic(message) {
   const text = String(message || '').toLowerCase();
@@ -171,9 +108,11 @@ function isAutomotiveTopic(message) {
     'engine', 'speed', 'drive', 'driving', 'luxury', 'supercar', 'sedan', 'suv',
     'coupe', 'convertible', 'horsepower', 'hp', 'torque', '0-100', '0 to 100',
     'price', 'finance', 'booking', 'viewing', 'test drive', 'compare',
-    'ferrari', 'sf90', 'roma', '296', 'ford', 'mustang', 'maserati', 'mc20',
-    'granturismo', 'trofeo', 'porsche', '911', 'taycan', 'lucid', 'mercedes',
-    'bmw', 'audi', 'tesla', 'model s', 'lamborghini', 'bentley', 'rolls', 'deepal', 's07',
+    'ferrari', 'sf90', 'roma', '296', 'ford', 'mustang', 'bronco', 'lincoln',
+    'jaguar', 'land rover', 'range rover', 'defender', 'maserati', 'mc20',
+    'granturismo', 'trofeo', 'vinfast', 'deepal', 's07', 'ford trucks',
+    'porsche', '911', 'taycan', 'lucid', 'mercedes', 'benz', 'volvo', 'toyota',
+    'bmw', 'audi', 'tesla', 'model s', 'lamborghini', 'bentley', 'rolls',
   ].some((term) => text.includes(term));
 }
 
@@ -241,6 +180,224 @@ async function searchCarSources(query) {
   }));
 }
 
+function decodeHtml(value) {
+  return String(value || '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>');
+}
+
+function absoluteUrl(value, baseUrl) {
+  try {
+    return new URL(value, baseUrl).toString();
+  } catch {
+    return '';
+  }
+}
+
+function htmlToText(html) {
+  return decodeHtml(String(html || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim());
+}
+
+function extractPageTitle(html) {
+  const match = String(html || '').match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  return trimText(decodeHtml(match?.[1] || ''), 140);
+}
+
+function extractImages(html, baseUrl) {
+  const images = [];
+  const seen = new Set();
+  const text = String(html || '');
+  const regexes = [
+    /<img[^>]+(?:src|data-src|data-lazy-src|data-original)=["']([^"']+)["'][^>]*(?:alt=["']([^"']*)["'])?/gi,
+    /<source[^>]+srcset=["']([^"']+)["'][^>]*>/gi,
+    /"image"\s*:\s*"([^"]+)"/gi,
+    /background-image:\s*url\(["']?([^"')]+)["']?\)/gi,
+  ];
+  regexes.forEach((regex) => {
+    let match = regex.exec(text);
+    while (match) {
+      const raw = String(match[1] || '').split(',')[0].trim().split(/\s+/)[0];
+      const url = absoluteUrl(raw, baseUrl);
+      const lower = url.toLowerCase();
+      if (
+        url &&
+        !seen.has(url) &&
+        !lower.includes('logo') &&
+        !lower.includes('icon') &&
+        !lower.endsWith('.svg') &&
+        /\.(jpg|jpeg|png|webp)(\?|$)/i.test(lower)
+      ) {
+        seen.add(url);
+        images.push({ url, alt: trimText(decodeHtml(match[2] || ''), 120) });
+      }
+      match = regex.exec(text);
+    }
+  });
+  return images.slice(0, 18);
+}
+
+function extractLinks(html, baseUrl) {
+  const links = [];
+  const seen = new Set();
+  const regex = /<a[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  let match = regex.exec(String(html || ''));
+  while (match) {
+    const url = absoluteUrl(match[1], baseUrl);
+    const text = trimText(htmlToText(match[2]), 140);
+    if (url && text && !seen.has(url)) {
+      seen.add(url);
+      links.push({ url, text });
+    }
+    match = regex.exec(String(html || ''));
+  }
+  return links.slice(0, 80);
+}
+
+function tokensFromRequest(message) {
+  return String(message || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .split(/\s+/)
+    .filter((token) => token.length > 2 && !['compare', 'versus', 'against', 'between', 'price', 'spec', 'specs', 'table', 'with', 'and', 'the'].includes(token));
+}
+
+function sourceCandidatesForMessage(message) {
+  const text = String(message || '').toLowerCase();
+  const registry = configuredSourceRegistry();
+  const matches = registry.filter((source) => source.aliases.some((alias) => text.includes(alias.toLowerCase())));
+  return (matches.length ? matches : registry.slice(0, 6)).slice(0, 6);
+}
+
+async function fetchTextUrl(url, timeoutMs = 7000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 AT-MOTORS-AI/1.0',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
+    });
+    if (!response.ok) return null;
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('text/html') && !contentType.includes('application/xhtml')) return null;
+    return await response.text();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function fetchBundleForSource(source, tokens = []) {
+  const html = await fetchTextUrl(source.url);
+  if (!html) return null;
+  const links = extractLinks(html, source.url);
+  const detailLinks = links
+    .filter((link) => {
+      const haystack = `${link.text} ${link.url}`.toLowerCase();
+      return tokens.some((token) => haystack.includes(token)) || source.aliases.some((alias) => haystack.includes(alias.toLowerCase()));
+    })
+    .slice(0, 3);
+
+  const detailPages = (await Promise.all(detailLinks.map(async (link) => {
+    const detailHtml = await fetchTextUrl(link.url, 5000);
+    if (!detailHtml) return null;
+    return {
+        name: `${source.brand}: ${link.text}`,
+        url: link.url,
+        title: extractPageTitle(detailHtml) || link.text,
+        text: trimText(htmlToText(detailHtml), 4500),
+        images: extractImages(detailHtml, link.url),
+    };
+  }))).filter(Boolean);
+
+  return {
+    name: source.brand,
+    url: source.url,
+    title: extractPageTitle(html) || source.brand,
+    text: trimText(htmlToText(html), 4500),
+    images: extractImages(html, source.url),
+    links: links.slice(0, 18),
+    details: detailPages,
+  };
+}
+
+async function fetchSourceBundles(message) {
+  const tokens = tokensFromRequest(message);
+  const sources = sourceCandidatesForMessage(message);
+  return (await Promise.all(sources.map((source) => fetchBundleForSource(source, tokens)))).filter(Boolean);
+}
+
+function flattenSourceBundles(bundles) {
+  return bundles.flatMap((bundle) => [
+    {
+      name: bundle.title || bundle.name,
+      url: bundle.url,
+      snippet: trimText(bundle.text, 420),
+      thumbnailUrl: bundle.images?.[0]?.url || '',
+    },
+    ...(bundle.details || []).map((detail) => ({
+      name: detail.title || detail.name,
+      url: detail.url,
+      snippet: trimText(detail.text, 420),
+      thumbnailUrl: detail.images?.[0]?.url || '',
+    })),
+  ]).filter((item) => item.url);
+}
+
+function modelsFromBundle(bundle) {
+  const images = [...(bundle.images || []), ...(bundle.details || []).flatMap((detail) => detail.images || [])];
+  const links = [
+    ...(bundle.links || []),
+    ...(bundle.details || []).map((detail) => ({ text: detail.title || detail.name, url: detail.url })),
+  ];
+  const modelWords = ['mustang', 'bronco', 'explorer', 'expedition', 'ranger', 'f-150', 'navigator', 'aviator', 'range rover', 'defender', 'discovery', 'mc20', 'granturismo', 'grecale', 'ferrari', '296', 'purosangue', 'amalfi', 'vinfast', 'deepal', 's07', 'vf', 'tesla', 'model', 'mercedes', 'volvo', 'toyota'];
+  const picked = [];
+  const seen = new Set();
+
+  links.forEach((link, index) => {
+    const text = trimText(link.text, 80);
+    const lower = text.toLowerCase();
+    if (!text || seen.has(lower) || !modelWords.some((word) => lower.includes(word))) return;
+    seen.add(lower);
+    picked.push({
+      brand: bundle.name,
+      model: text,
+      type: 'Public source model',
+      detail: `Open ${bundle.name} source details for ${text}.`,
+      imageUrl: images[index % Math.max(images.length, 1)]?.url || images[0]?.url || '',
+      comparePrompt: `Compare ${text} with another ${bundle.name} or UAE automotive model in AED`,
+      sourceUrl: link.url || bundle.url,
+    });
+  });
+
+  if (!picked.length) {
+    picked.push({
+      brand: bundle.name,
+      model: trimText(bundle.title || bundle.name, 80),
+      type: 'Brand source',
+      detail: `Browse live ${bundle.name} source information.`,
+      imageUrl: images[0]?.url || '',
+      comparePrompt: `Compare ${bundle.name} models in AED`,
+      sourceUrl: bundle.url,
+    });
+  }
+
+  return picked.slice(0, 4);
+}
+
 function extractJsonObject(value) {
   const text = String(value || '').trim();
   if (!text) return null;
@@ -271,21 +428,14 @@ function inferComparedVehicles(message) {
 
 function imageForVehicle(vehicle, sources) {
   const name = `${vehicle.brand || ''} ${vehicle.model || vehicle.name || ''}`.toLowerCase();
-  const catalogMatch = IMAGE_CATALOG.find((item) => item.aliases.some((alias) => name.includes(alias)));
-  if (catalogMatch) return catalogMatch.imageUrl;
-
   const matched = sources.find((source) => {
     const haystack = `${source.name || ''} ${source.snippet || ''}`.toLowerCase();
     return source.thumbnailUrl && name.split(/\s+/).filter((word) => word.length > 2).some((word) => haystack.includes(word));
   });
   if (matched?.thumbnailUrl) return matched.thumbnailUrl;
 
-  return 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=90&w=2200';
-}
-
-function catalogForVehicle(value) {
-  const text = String(value || '').toLowerCase();
-  return VEHICLE_CATALOG.find((item) => item.aliases.some((alias) => text.includes(alias))) || null;
+  const anyImage = sources.find((source) => source.thumbnailUrl);
+  return anyImage?.thumbnailUrl || '';
 }
 
 function escapeRegExp(value) {
@@ -294,20 +444,15 @@ function escapeRegExp(value) {
 
 function normalizeVehicle(vehicle, fallbackName, sources) {
   const rawName = trimText(vehicle?.name || fallbackName, 80) || fallbackName;
-  const catalog = catalogForVehicle(`${rawName} ${vehicle?.brand || ''} ${vehicle?.model || ''}`);
-  const brand = trimText(vehicle?.brand || catalog?.brand || rawName.split(' ')[0], 50);
-  const model = trimText(vehicle?.model || catalog?.model || rawName.replace(new RegExp(`^${escapeRegExp(brand)}\\s*`, 'i'), ''), 80) || rawName;
-  const type = trimText(vehicle?.type || vehicle?.segment || catalog?.type || 'Luxury vehicle', 60);
-  const specs = {
-    ...(catalog?.specs || {}),
-    ...(vehicle?.specs && typeof vehicle.specs === 'object' ? vehicle.specs : {}),
-  };
+  const brand = trimText(vehicle?.brand || rawName.split(' ')[0], 50);
+  const model = trimText(vehicle?.model || rawName.replace(new RegExp(`^${escapeRegExp(brand)}\\s*`, 'i'), ''), 80) || rawName;
+  const type = trimText(vehicle?.type || vehicle?.segment || 'Luxury vehicle', 60);
+  const specs = vehicle?.specs && typeof vehicle.specs === 'object' ? vehicle.specs : {};
   const normalized = { name: rawName, brand, model, type, specs };
   return {
     ...normalized,
-    name: catalog?.name || rawName,
     imageUrl: trimText(vehicle?.imageUrl || vehicle?.image || '', 600) || imageForVehicle(normalized, sources),
-    highlight: trimText(vehicle?.highlight || vehicle?.bestFor || catalog?.highlight || 'Private showroom fit', 100),
+    highlight: trimText(vehicle?.highlight || vehicle?.bestFor || 'Source-led showroom fit', 100),
   };
 }
 
@@ -316,7 +461,7 @@ function fallbackComparison(message, sources = []) {
   const vehicles = names.map((name) => normalizeVehicle({ name }, name, sources));
   return {
     title: `${vehicles[0].name} vs ${vehicles[1].name}`,
-    summary: 'A curated AT MOTORS prototype dossier with AED market-oriented values and showroom-ready positioning.',
+    summary: 'A source-led AT MOTORS dossier. Publicly listed values are shown when available; missing details are marked clearly.',
     vehicles,
     rows: ['Engine', 'Top speed', '0-100 km/h', 'Estimated price', 'Best fit'].map((label) => ({
       label,
@@ -374,12 +519,17 @@ function normalizeComparison(raw, message, sources) {
   };
 }
 
-async function buildStructuredComparison(message, context, sources) {
-  const sourceText = sources.length
-    ? sources.map((source, index) => `[${index + 1}] ${source.name}\n${source.url}\n${source.snippet}`).join('\n\n')
-    : 'No web search sources are configured. Use general automotive knowledge, keep values realistic, and mark approximate values with "approx." when needed.';
+async function buildStructuredComparison(message, context, sourceBundles) {
+  const sourceText = sourceBundles.length
+    ? sourceBundles.map((source, index) => {
+      const details = (source.details || []).map((detail, detailIndex) => (
+        `[${index + 1}.${detailIndex + 1}] ${detail.title}\n${detail.url}\n${trimText(detail.text, 1800)}\nImages: ${(detail.images || []).slice(0, 5).map((image) => image.url).join(', ')}`
+      )).join('\n\n');
+      return `[${index + 1}] ${source.title}\n${source.url}\n${trimText(source.text, 1800)}\nImages: ${(source.images || []).slice(0, 8).map((image) => image.url).join(', ')}\nModel links: ${(source.links || []).slice(0, 10).map((link) => `${link.text} ${link.url}`).join(' | ')}\n\n${details}`;
+    }).join('\n\n')
+    : 'No public source pages could be fetched. Return a useful structure but mark unavailable facts as "Not listed on source".';
   const messages = [
-    { role: 'system', content: `${SYSTEM_PROMPT}\nReturn only valid JSON for the UI. Do not wrap in markdown. Use concise, realistic automotive data suitable for a luxury comparison UI. All prices must be AED only. Mark uncertain specs as "approx." rather than pretending exact inventory data.` },
+    { role: 'system', content: `${SYSTEM_PROMPT}\nReturn only valid JSON for the UI. Do not wrap in markdown. Use only the supplied source pages for prices, specifications, model names, and image URLs. All prices must be AED only. If the source does not list a price or spec, write "Not listed on source" rather than guessing.` },
     { role: 'system', content: context.text ? `Showroom context:\n${context.text}` : 'No uploaded showroom context is available yet.' },
     { role: 'system', content: `Live source context:\n${sourceText}` },
     {
@@ -388,11 +538,11 @@ async function buildStructuredComparison(message, context, sources) {
 Return JSON with this exact shape:
 {
   "title": "Vehicle A vs Vehicle B",
-  "summary": "one polished sentence for the showroom UI",
-  "recommendation": "one concise buying guidance sentence",
+  "summary": "one polished source-led sentence for the showroom UI",
+  "recommendation": "one concise buying guidance sentence based only on listed facts",
   "vehicles": [
-    {"name":"", "brand":"", "model":"", "type":"", "highlight":"", "specs":{"Engine":"","Top speed":"","0-100 km/h":"","Estimated price":"","Best fit":""}},
-    {"name":"", "brand":"", "model":"", "type":"", "highlight":"", "specs":{"Engine":"","Top speed":"","0-100 km/h":"","Estimated price":"","Best fit":""}}
+    {"name":"", "brand":"", "model":"", "type":"", "highlight":"", "imageUrl":"", "specs":{"Engine":"","Top speed":"","0-100 km/h":"","Estimated price":"","Best fit":""}},
+    {"name":"", "brand":"", "model":"", "type":"", "highlight":"", "imageUrl":"", "specs":{"Engine":"","Top speed":"","0-100 km/h":"","Estimated price":"","Best fit":""}}
   ],
   "rows": [
     {"label":"Engine","values":["",""]},
@@ -494,6 +644,25 @@ app.http('documents-list', {
   },
 });
 
+app.http('showroom-models', {
+  methods: ['GET'],
+  authLevel: 'anonymous',
+  route: 'at-motors/showroom-models',
+  handler: async (request, context) => {
+    try {
+      const sources = configuredSourceRegistry().slice(0, 12);
+      const bundles = (await Promise.all(sources.map((source) => (
+        fetchBundleForSource(source, source.aliases.slice(0, 8).map((alias) => alias.toLowerCase()))
+      )))).filter(Boolean).slice(0, 8);
+      const vehicles = bundles.flatMap(modelsFromBundle).filter((item) => item.imageUrl).slice(0, 12);
+      return ok({ vehicles, sources: bundles.map((bundle) => ({ name: bundle.name, url: bundle.url })) });
+    } catch (error) {
+      log(context, 'warn', 'Showroom models failed', { error: error.message });
+      return ok({ vehicles: [], sources: [] });
+    }
+  },
+});
+
 app.http('documents-create', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -546,10 +715,17 @@ app.http('chat', {
       const docContext = await getDocumentContext();
       let sources = [];
       if (needsLiveCarSearch(message)) {
-        sources = await searchCarSources(`${message} UAE AED price official specs engine top speed 0-100`).catch((error) => {
-          log(context, 'warn', 'Bing grounding failed', { error: error.message });
+        const sourceBundles = await fetchSourceBundles(message).catch((error) => {
+          log(context, 'warn', 'Public source fetch failed', { error: error.message });
           return [];
         });
+        sources = flattenSourceBundles(sourceBundles);
+        if (!sources.length) {
+          sources = await searchCarSources(`${message} UAE AED price official specs engine top speed 0-100`).catch((error) => {
+            log(context, 'warn', 'Bing grounding failed', { error: error.message });
+            return [];
+          });
+        }
       }
 
       const searchContext = sources.length
@@ -592,11 +768,15 @@ app.http('comparison', {
       if (!isAutomotiveTopic(message)) return badRequest('Comparison requests must stay automotive.');
 
       const docContext = await getDocumentContext().catch(() => ({ names: [], text: '' }));
-      const sources = [];
+      const sourceBundles = await fetchSourceBundles(message).catch((error) => {
+        log(context, 'warn', 'Public source fetch failed', { error: error.message });
+        return [];
+      });
+      const sources = flattenSourceBundles(sourceBundles);
 
       let raw = null;
       try {
-        raw = await buildStructuredComparison(message, docContext, sources);
+        raw = await buildStructuredComparison(message, docContext, sourceBundles);
       } catch (error) {
         log(context, 'warn', 'Structured comparison failed', { error: error.message });
       }
@@ -604,6 +784,7 @@ app.http('comparison', {
       return ok({
         comparison: normalizeComparison(raw, message, sources),
         documentsUsed: docContext.names,
+        sourceCount: sources.length,
       });
     } catch (error) {
       log(context, 'error', 'Comparison failed', { error: error.message });
