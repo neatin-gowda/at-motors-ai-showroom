@@ -11,7 +11,7 @@ const {
 } = require('./shared');
 
 const SYSTEM_PROMPT = `You are the AT MOTORS luxury automotive AI concierge.
-Represent a premium showroom with Ford, Lincoln, Jaguar, Land Rover, Maserati, Ferrari, VinFast, Deepal, and Ford Trucks.
+Represent a premium showroom with Ford Mustang, Jaguar, Land Rover, Maserati, and Ferrari.
 Use the supplied showroom context first. If context is missing, say so briefly and give a helpful next step.
 Keep answers polished, concise, and sales-useful.
 When comparison is requested, compare performance, comfort, ownership fit, budget tier, and appointment next step.
@@ -25,11 +25,6 @@ const SOURCE_REGISTRY = [
     brand: 'Ford',
     aliases: ['ford', 'mustang', 'bronco', 'explorer', 'expedition', 'everest', 'territory', 'taurus', 'ranger', 'f-150'],
     url: 'https://www.altayermotors.com/ford/',
-  },
-  {
-    brand: 'Lincoln',
-    aliases: ['lincoln', 'navigator', 'aviator', 'corsair', 'nautilus'],
-    url: 'https://www.altayermotors.com/lincoln/',
   },
   {
     brand: 'Jaguar',
@@ -51,21 +46,6 @@ const SOURCE_REGISTRY = [
     aliases: ['ferrari', '849', 'testarossa', 'amalfi', '296', 'gtb', 'gts', '12cilindri', 'purosangue'],
     url: 'https://www.altayermotors.com/ferrari/',
   },
-  {
-    brand: 'VinFast',
-    aliases: ['vinfast', 'vf 6', 'vf6', 'vf 7', 'vf7', 'vf 8', 'vf8', 'vf 9', 'vf9'],
-    url: 'https://www.altayermotors.com/vinfast/',
-  },
-  {
-    brand: 'Deepal',
-    aliases: ['deepal', 's07', 'sl03', 'g318', 'changan'],
-    url: 'https://www.altayermotors.com/deepal/',
-  },
-  {
-    brand: 'Ford Trucks',
-    aliases: ['ford trucks', 'ford truck', 'f-max', 'f max', 'cargo'],
-    url: 'https://www.altayermotors.com/ford-trucks/',
-  },
 ];
 
 const SHOWROOM_MODELS = [
@@ -74,47 +54,31 @@ const SHOWROOM_MODELS = [
     model: 'Mustang GT',
     type: 'Performance coupe',
     detail: 'V8 theatre with daily usability and strong showroom appeal.',
-    imageUrl: 'https://images.unsplash.com/photo-1561535743-c82c241502d5?auto=format&fit=crop&q=90&w=1400',
-    comparePrompt: 'Compare Ford Mustang GT and Maserati GranTurismo Trofeo',
-  },
-  {
-    brand: 'Ford',
-    model: 'Bronco',
-    type: 'Adventure SUV',
-    detail: 'Rugged lifestyle SUV for off-road style and weekend capability.',
-    imageUrl: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&q=90&w=1400',
-    comparePrompt: 'Compare Ford Bronco and Land Rover Defender',
-  },
-  {
-    brand: 'Lincoln',
-    model: 'Aviator',
-    type: 'Luxury SUV',
-    detail: 'Quiet premium family SUV with a soft luxury cabin feel.',
-    imageUrl: 'https://images.unsplash.com/photo-1605893477799-b99e3b8b93fe?auto=format&fit=crop&q=90&w=1400',
-    comparePrompt: 'Compare Lincoln Aviator and Land Rover Discovery',
+    imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Ford_Mustang_GT_%282024%29_%2853800122142%29.jpg?width=1600',
+    comparePrompt: 'Compare Ford Mustang GT and Maserati MC20',
   },
   {
     brand: 'Jaguar',
     model: 'F-Pace',
     type: 'Luxury performance SUV',
     detail: 'British performance SUV with a premium road presence.',
-    imageUrl: 'https://images.unsplash.com/photo-1619767886558-efdc259cde1a?auto=format&fit=crop&q=90&w=1400',
-    comparePrompt: 'Compare Jaguar F-Pace and Maserati Grecale',
+    imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Jaguar-F-Pace.png?width=1600',
+    comparePrompt: 'Compare Jaguar F-Pace and Land Rover Defender',
   },
   {
     brand: 'Land Rover',
     model: 'Defender',
     type: 'Luxury 4x4',
     detail: 'Iconic capability with premium all-terrain character.',
-    imageUrl: 'https://images.unsplash.com/photo-1609521263047-f8f205293f24?auto=format&fit=crop&q=90&w=1400',
-    comparePrompt: 'Compare Land Rover Defender and Ford Bronco',
+    imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/2020_Land_Rover_Defender.jpg?width=1600',
+    comparePrompt: 'Compare Land Rover Defender and Ford Mustang GT',
   },
   {
     brand: 'Maserati',
     model: 'MC20',
     type: 'Italian supercar',
     detail: 'Low-slung Italian performance with exotic showroom theatre.',
-    imageUrl: 'https://images.unsplash.com/photo-1756548843479-3783100b3447?auto=format&fit=crop&q=90&w=1400',
+    imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Maserati_MC20.jpg?width=1600',
     comparePrompt: 'Compare Maserati MC20 and Ferrari 296 GTB',
   },
   {
@@ -122,38 +86,14 @@ const SHOWROOM_MODELS = [
     model: '296 GTB',
     type: 'Hybrid supercar',
     detail: 'Compact Ferrari hybrid performance with intense emotional pull.',
-    imageUrl: 'https://images.unsplash.com/photo-1556516731-779d3492975b?auto=format&fit=crop&q=90&w=1400',
+    imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Ferrari_296_GTB.jpg?width=1600',
     comparePrompt: 'Compare Ferrari 296 GTB and Maserati MC20',
-  },
-  {
-    brand: 'VinFast',
-    model: 'VF 8',
-    type: 'Electric SUV',
-    detail: 'Modern EV SUV with practical premium positioning.',
-    imageUrl: 'https://images.unsplash.com/photo-1593941707882-a5bba53b0998?auto=format&fit=crop&q=90&w=1400',
-    comparePrompt: 'Compare VinFast VF 8 and Deepal S07',
-  },
-  {
-    brand: 'Deepal',
-    model: 'S07',
-    type: 'Smart EV SUV',
-    detail: 'Tech-forward SUV choice with premium screens and quiet commuting.',
-    imageUrl: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&q=90&w=1400',
-    comparePrompt: 'Compare Deepal S07 and VinFast VF 8',
-  },
-  {
-    brand: 'Ford Trucks',
-    model: 'F-MAX',
-    type: 'Heavy truck',
-    detail: 'Commercial long-haul capability for fleet and logistics decisions.',
-    imageUrl: 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&q=90&w=1400',
-    comparePrompt: 'Compare Ford Trucks F-MAX and Ford Trucks Cargo',
   },
 ];
 
 const FALLBACK_MODEL_CATALOG = [
   {
-    aliases: ['mustang', 'mustang gt'],
+    aliases: ['ford', 'mustang', 'mustang gt'],
     specs: {
       Engine: '5.0L V8, approx. 480+ hp',
       'Top speed': '250-290 km/h approx.',
@@ -193,7 +133,7 @@ const FALLBACK_MODEL_CATALOG = [
     },
   },
   {
-    aliases: ['f-pace', 'f pace'],
+    aliases: ['jaguar', 'f-pace', 'f pace'],
     specs: {
       Engine: 'Petrol, mild-hybrid options by trim',
       'Top speed': 'Approx. 217-286 km/h by trim',
@@ -203,7 +143,7 @@ const FALLBACK_MODEL_CATALOG = [
     },
   },
   {
-    aliases: ['defender'],
+    aliases: ['land rover', 'defender'],
     specs: {
       Engine: 'Petrol mild-hybrid options by trim',
       'Top speed': 'Approx. 191-240 km/h by trim',
@@ -223,7 +163,7 @@ const FALLBACK_MODEL_CATALOG = [
     },
   },
   {
-    aliases: ['mc20'],
+    aliases: ['maserati', 'mc20'],
     specs: {
       Engine: '3.0L twin-turbo Nettuno V6',
       'Top speed': '325 km/h approx.',
@@ -243,7 +183,7 @@ const FALLBACK_MODEL_CATALOG = [
     },
   },
   {
-    aliases: ['296', '296 gtb', '296 gts'],
+    aliases: ['ferrari', '296', '296 gtb', '296 gts'],
     specs: {
       Engine: 'V6 plug-in hybrid, 800+ hp combined',
       'Top speed': '330 km/h approx.',
@@ -314,10 +254,9 @@ function isAutomotiveTopic(message) {
     'engine', 'speed', 'drive', 'driving', 'luxury', 'supercar', 'sedan', 'suv',
     'coupe', 'convertible', 'horsepower', 'hp', 'torque', '0-100', '0 to 100',
     'price', 'finance', 'booking', 'viewing', 'test drive', 'compare',
-    'ferrari', 'sf90', 'roma', '296', 'ford', 'mustang', 'bronco', 'lincoln',
+    'ferrari', 'sf90', 'roma', '296', 'ford', 'mustang',
     'jaguar', 'land rover', 'range rover', 'defender', 'maserati', 'mc20',
-    'granturismo', 'trofeo', 'vinfast', 'deepal', 's07', 'ford trucks',
-    'navigator', 'aviator', 'f-pace', 'f pace', 'vf 8', 'vf8', 'f-max', 'f max',
+    'granturismo', 'trofeo', 'f-pace', 'f pace',
   ].some((term) => text.includes(term));
 }
 
@@ -713,7 +652,14 @@ function normalizeComparison(raw, message, sources) {
     }
     return cleaned || fallbackValue || 'Not verified';
   };
-  const rows = Array.isArray(raw?.rows) && raw.rows.length
+  const rowsFromModelSpecs = rowLabels.map((label) => ({
+    label,
+    values: [
+      trimText(normalizedVehicles[0].specs?.[label] || normalizedVehicles[0].specs?.[label.toLowerCase()] || '', 90) || 'Not verified',
+      trimText(normalizedVehicles[1].specs?.[label] || normalizedVehicles[1].specs?.[label.toLowerCase()] || '', 90) || 'Not verified',
+    ],
+  }));
+  const rawRows = Array.isArray(raw?.rows) && raw.rows.length
     ? raw.rows.slice(0, 8).map((row) => ({
       label: trimText(row.label, 40),
       values: Array.isArray(row.values)
@@ -723,13 +669,18 @@ function normalizeComparison(raw, message, sources) {
           normalizeRowValue(trimText(row.label, 40), row.right || row.b || '', 1),
         ],
     })).filter((row) => row.label)
-    : rowLabels.map((label) => ({
+    : [];
+  const rows = rowLabels.map((label) => {
+    const rawRow = rawRows.find((row) => row.label.toLowerCase() === label.toLowerCase());
+    const fallbackRow = rowsFromModelSpecs.find((row) => row.label === label);
+    return {
       label,
       values: [
-        trimText(normalizedVehicles[0].specs?.[label] || normalizedVehicles[0].specs?.[label.toLowerCase()] || '', 80) || 'Not verified',
-        trimText(normalizedVehicles[1].specs?.[label] || normalizedVehicles[1].specs?.[label.toLowerCase()] || '', 80) || 'Not verified',
+        rawRow?.values?.[0] && rawRow.values[0] !== 'Not verified' ? rawRow.values[0] : fallbackRow.values[0],
+        rawRow?.values?.[1] && rawRow.values[1] !== 'Not verified' ? rawRow.values[1] : fallbackRow.values[1],
       ],
-    }));
+    };
+  });
 
   return {
     title: trimText(raw?.title, 120) || `${normalizedVehicles[0].name} vs ${normalizedVehicles[1].name}`,
