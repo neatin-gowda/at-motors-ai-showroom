@@ -24,41 +24,6 @@ const showroomScenes = [
   },
 ];
 
-const railVehicles = [
-  {
-    brand: 'Ferrari',
-    model: 'SF90 Stradale',
-    type: 'Hybrid supercar',
-    detail: '986 hp plug-in hybrid theatre, built for clients who want maximum emotion and track-grade presence.',
-    imageUrl: 'https://images.unsplash.com/photo-1556516731-779d3492975b?auto=format&fit=crop&q=90&w=1400',
-    comparePrompt: 'Compare Ferrari SF90 Stradale and Maserati GranTurismo Trofeo in AED',
-  },
-  {
-    brand: 'Ford',
-    model: 'Mustang GT',
-    type: 'Performance coupe',
-    detail: 'A V8 performance icon with strong value, daily usability, and an unmistakable sound.',
-    imageUrl: 'https://images.unsplash.com/photo-1561535743-c82c241502d5?auto=format&fit=crop&q=90&w=1400',
-    comparePrompt: 'Compare Ford Mustang GT and Ferrari SF90 Stradale in AED',
-  },
-  {
-    brand: 'Maserati',
-    model: 'GranTurismo Trofeo',
-    type: 'Grand tourer',
-    detail: 'A refined Italian GT for long-distance elegance, comfort, and effortless pace.',
-    imageUrl: 'https://images.unsplash.com/photo-1756548843479-3783100b3447?auto=format&fit=crop&q=90&w=1400',
-    comparePrompt: 'Compare Maserati GranTurismo Trofeo and Porsche 911 Carrera GTS in AED',
-  },
-  {
-    brand: 'Deepal',
-    model: 'S07',
-    type: 'Smart EV SUV',
-    detail: 'A tech-forward SUV choice for premium screens, quiet commuting, and accessible AED ownership.',
-    imageUrl: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&q=90&w=1400',
-    comparePrompt: 'Compare Deepal S07 and Tesla Model S in AED',
-  },
-];
-
 const automotiveTerms = [
   'car', 'cars', 'auto', 'automotive', 'vehicle', 'vehicles', 'motor', 'motors',
   'engine', 'speed', 'drive', 'driving', 'luxury', 'supercar', 'sedan', 'suv',
@@ -66,8 +31,10 @@ const automotiveTerms = [
   'price', 'finance', 'booking', 'viewing', 'test drive', 'compare', 'range',
   'battery', 'hybrid', 'ev', 'electric', 'mustang', 'ferrari', 'ford', 'maserati',
   'sf90', 'roma', '296', 'mc20', 'granturismo', 'trofeo', 'deepal', 's07',
-  'porsche', '911', 'taycan', 'lucid', 'mercedes', 'bmw', 'audi', 'tesla', 'model s', 'lamborghini',
-  'bentley', 'rolls', 'aston martin', 'mclaren', 'range rover', 'lexus',
+  'bronco', 'lincoln', 'jaguar', 'land rover', 'range rover', 'defender', 'vinfast',
+  'porsche', '911', 'taycan', 'lucid', 'mercedes', 'benz', 'volvo', 'toyota',
+  'bmw', 'audi', 'tesla', 'model s', 'lamborghini',
+  'bentley', 'rolls', 'aston martin', 'mclaren', 'lexus',
 ];
 
 const farewellPatterns = [
@@ -165,10 +132,11 @@ function cleanDisplayText(value, options = {}) {
   return trim ? text.trim() : text;
 }
 
-function HologramRail({ onInspect }) {
+function HologramRail({ vehicles, onInspect }) {
   return (
     <div className="holoRail" aria-label="Featured vehicles">
-      {railVehicles.map((vehicle, index) => (
+      {!vehicles.length && <div className="holoLoading">Loading live showroom models</div>}
+      {vehicles.slice(0, 8).map((vehicle, index) => (
         <button
           className="holoCar"
           style={{ '--delay': `${index * .42}s` }}
@@ -203,7 +171,7 @@ function ComparisonStage({ comparison, loading, onDownload }) {
       </div>
       {[left, right].map((car, index) => (
         <article className={`comparePanel ${index === 0 ? 'fromLeft' : 'fromRight'}`} key={`${car.name}-${index}`}>
-          <img src={car.imageUrl} alt={car.name} />
+          {car.imageUrl ? <img src={car.imageUrl} alt={car.name} /> : <div className="imageFallback">{car.brand}</div>}
           <div className="motionLine" />
           <div className="compareTitle">
             <span>{car.type}</span>
@@ -249,6 +217,7 @@ function App() {
   const [comparisonLoading, setComparisonLoading] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [input, setInput] = useState('');
+  const [railVehicles, setRailVehicles] = useState([]);
 
   const realtimeRef = useRef(null);
   const realtimeSessionRef = useRef(null);
@@ -279,6 +248,15 @@ function App() {
   useEffect(() => {
     const timer = window.setInterval(() => setActiveCar((index) => (index + 1) % showroomScenes.length), 7000);
     return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/at-motors/showroom-models`)
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => {
+        if (Array.isArray(data?.vehicles)) setRailVehicles(data.vehicles);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -622,10 +600,10 @@ function App() {
   const inspectRailVehicle = (vehicle) => {
     const text = `${vehicle.brand} ${vehicle.model}`;
     setRecognized(text);
-    setStreamText(vehicle.detail);
+    setStreamText(vehicle.detail || `Live source model from ${vehicle.brand}.`);
     setConversation((items) => [...items, { role: 'user', text: `Show ${text}` }].slice(-4));
     setMode('responding');
-    requestComparisonFromText(vehicle.comparePrompt);
+    requestComparisonFromText(vehicle.comparePrompt || `Compare ${text} with another UAE automotive model in AED`);
   };
 
   const downloadComparisonReport = () => {
@@ -786,7 +764,7 @@ function App() {
 
       <section className="stage" ref={stageRef}>
         <div className="orbDock">
-          <HologramRail onInspect={inspectRailVehicle} />
+          <HologramRail vehicles={railVehicles} onInspect={inspectRailVehicle} />
           <button className="orb" onClick={startLiveSession} aria-label="Talk to AI">
             <i />
             <b />
