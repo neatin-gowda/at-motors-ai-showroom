@@ -125,7 +125,7 @@ function isComparisonRequest(message) {
 
 function isVehicleProfileRequest(message) {
   const text = message.toLowerCase();
-  return /\b(show|check|open|view|display|details|profile|price|specs|specification|tell me about|what about|look at)\b/i.test(text);
+  return /\b(show|check|open|view|display|details|profile|price|specs|specification|tell me about|what about|look|looks|looking|see|overview|features|interior|exterior)\b/i.test(text);
 }
 
 function isAutomotiveTopic(message) {
@@ -397,12 +397,18 @@ function App() {
 
     processor.onaudioprocess = (event) => {
       if (socket.readyState !== WebSocket.OPEN) return;
+      if (mutedRef.current) return;
       const channel = event.inputBuffer.getChannelData(0);
       const audio = floatToPcm16Base64(channel, audioContext.sampleRate);
       socket.send(JSON.stringify({ type: 'input_audio_buffer.append', audio }));
     };
 
     const tick = () => {
+      if (mutedRef.current) {
+        setLevel(0);
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
       analyser.getByteFrequencyData(data);
       const average = data.reduce((sum, value) => sum + value, 0) / data.length;
       setLevel(Math.min(1, average / 90));
@@ -642,6 +648,38 @@ function App() {
     return true;
   };
 
+  const toggleMute = async () => {
+    const nextMuted = !mutedRef.current;
+    setMuted(nextMuted);
+    mutedRef.current = nextMuted;
+
+    if (nextMuted) {
+      stopMicStreaming();
+      stopPlayback();
+      setLevel(0);
+      if (realtimeRef.current?.readyState === WebSocket.OPEN) {
+        try {
+          realtimeRef.current.send(JSON.stringify({ type: 'input_audio_buffer.clear' }));
+          if (modelRespondingRef.current) realtimeRef.current.send(JSON.stringify({ type: 'response.cancel' }));
+        } catch {
+          // The realtime session may already be idle.
+        }
+      }
+      setStreamText((text) => text || 'Microphone muted. Tap Unmute to resume listening.');
+      return;
+    }
+
+    if (realtimeRef.current?.readyState === WebSocket.OPEN) {
+      try {
+        await startMicStreaming(realtimeRef.current);
+        setMode('listening');
+        setStreamText('');
+      } catch {
+        setStreamText('Could not resume microphone access. Check browser microphone permission.');
+      }
+    }
+  };
+
   const inspectRailVehicle = (vehicle) => {
     const text = `${vehicle.brand} ${vehicle.model}`;
     setRecognized(text);
@@ -772,6 +810,8 @@ function App() {
     userDraftTranscriptRef.current = '';
     try {
       const socket = await openRealtimeSocket({ closeOnDone: false });
+      setMuted(false);
+      mutedRef.current = false;
       await startMicStreaming(socket);
       setMode('listening');
       setStreamText('');
@@ -818,7 +858,7 @@ function App() {
           </button>
           <div className={`transcript ${hasTranscript ? 'isVisible' : ''}`}>
             <div className="chatGlow" ref={chatGlowRef}>
-              {conversation.slice(-2).map((item, index) => (
+              {conversation.slice(comparison ? -1 : -2).map((item, index) => (
                 <p className={`chatLine ${item.role}`} key={`${item.role}-${index}-${item.text.slice(0, 12)}`}>{item.text}</p>
               ))}
               {recognized && <p className="recognized">{recognized}</p>}
@@ -850,7 +890,7 @@ function App() {
 
       <footer className="liveFooter">
         <div className="liveDot"><Icon name="live" /> Live</div>
-        <button className={muted ? 'isMuted' : ''} onClick={() => setMuted((value) => !value)}><Icon name="mute" /> {muted ? 'Unmute' : 'Mute'}</button>
+        <button className={muted ? 'isMuted' : ''} onClick={toggleMute}><Icon name="mute" /> {muted ? 'Unmute' : 'Mute'}</button>
         <button className="endButton" onClick={() => endSession()}><Icon name="end" /> End</button>
       </footer>
     </main>
