@@ -123,6 +123,11 @@ function isComparisonRequest(message) {
   return /\b(compare|comparison|versus|vs\.?|against|between|table|tabular|specs|specification|difference|better|recommend|choose|which one)\b/i.test(text);
 }
 
+function isVehicleProfileRequest(message) {
+  const text = message.toLowerCase();
+  return /\b(show|check|open|view|display|details|profile|price|specs|specification|tell me about|what about|look at)\b/i.test(text);
+}
+
 function isAutomotiveTopic(message) {
   const text = message.toLowerCase();
   return automotiveTerms.some((term) => text.includes(term));
@@ -173,16 +178,18 @@ function ComparisonStage({ comparison, loading, onDownload }) {
   const rows = comparison.rows || [];
   const left = vehicles[0];
   const right = vehicles[1];
-  if (!left || !right) return null;
+  if (!left) return null;
+  const visibleVehicles = right ? [left, right] : [left];
+  const isSingle = !right;
 
   return (
-    <section className={`compareStage ${loading ? 'isUpdating' : ''}`}>
+    <section className={`compareStage ${isSingle ? 'isSingle' : ''} ${loading ? 'isUpdating' : ''}`}>
       <div className="compareIntro">
-        <span>AI comparison dossier</span>
+        <span>{isSingle ? 'AI vehicle profile' : 'AI comparison dossier'}</span>
         <h2>{comparison.title}</h2>
         {comparison.summary && <p>{comparison.summary}</p>}
       </div>
-      {[left, right].map((car, index) => (
+      {visibleVehicles.map((car, index) => (
         <article className={`comparePanel ${index === 0 ? 'fromLeft' : 'fromRight'}`} key={`${car.name}-${index}`}>
           {car.imageUrl ? (
             <img
@@ -204,22 +211,22 @@ function ComparisonStage({ comparison, loading, onDownload }) {
         </article>
       ))}
       <div className="specGrid">
-        <div className="specHeader">
+        <div className={`specHeader ${isSingle ? 'isSingle' : ''}`}>
           <span>Specification</span>
           <b>{left.brand}</b>
-          <em>{right.brand}</em>
+          {right && <em>{right.brand}</em>}
         </div>
         {rows.map((row) => (
-          <div key={row.label}>
+          <div className={isSingle ? 'isSingle' : ''} key={row.label}>
             <span>{row.label}</span>
             <b>{row.values?.[0] || 'Not verified'}</b>
-            <em>{row.values?.[1] || 'Not verified'}</em>
+            {right && <em>{row.values?.[1] || 'Not verified'}</em>}
           </div>
         ))}
       </div>
       {comparison.recommendation && <p className="recommendation">{comparison.recommendation}</p>}
       <div className="sourceStrip">
-        <strong>{left.brand} vs {right.brand}</strong>
+        <strong>{right ? `${left.brand} vs ${right.brand}` : `${left.brand} profile`}</strong>
         {loading ? <span>Updating dossier</span> : (comparison.sources || []).length ? (comparison.sources || []).slice(0, 3).map((source) => <a href={source.url} key={source.url} target="_blank" rel="noreferrer">{source.name}</a>) : <span>AI generated comparison</span>}
         <button type="button" onClick={onDownload}><Icon name="download" /> Report</button>
       </div>
@@ -593,6 +600,8 @@ function App() {
     const requestSeq = comparisonRequestSeqRef.current + 1;
     comparisonRequestSeqRef.current = requestSeq;
     setComparisonLoading(true);
+    setMode('comparison');
+    setStreamText((text) => text || 'Preparing the showroom view...');
     try {
       const response = await fetch(`${API_BASE}/at-motors/comparison`, {
         method: 'POST',
@@ -619,7 +628,8 @@ function App() {
   const requestComparisonFromText = (message, options = {}) => {
     const { immediate = false } = options;
     const value = cleanDisplayText(message);
-    if (!value || !isComparisonRequest(value) || (!isAutomotiveTopic(value) && !comparisonRef.current)) return false;
+    const shouldShowProfile = isVehicleProfileRequest(value);
+    if (!value || (!isComparisonRequest(value) && !shouldShowProfile) || (!isAutomotiveTopic(value) && !comparisonRef.current)) return false;
     const key = value.toLowerCase();
     const run = () => {
       if (key === lastComparisonRequestRef.current) return;
@@ -732,7 +742,7 @@ function App() {
       streamAnswer('I can only assist with AT MOTORS, cars, automotive comparisons, ownership, finance, test drives, and showroom bookings.', { speakOutput: false });
       return;
     }
-    const shouldCompare = isComparisonRequest(value);
+    const shouldCompare = isComparisonRequest(value) || isVehicleProfileRequest(value);
     setRecognized(value);
     setConversation((items) => [...items, { role: 'user', text: value }].slice(-4));
     setMode(comparison || shouldCompare ? 'comparison' : 'responding');
