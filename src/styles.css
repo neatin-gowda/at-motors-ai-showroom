@@ -518,6 +518,12 @@ svg { width: 18px; height: 18px; }
   z-index: 4;
 }
 
+.compareStage.isSingle {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 940px;
+  width: min(940px, calc(100vw - 36px));
+}
+
 .compareAnchor {
   display: grid;
   justify-items: center;
@@ -572,6 +578,10 @@ svg { width: 18px; height: 18px; }
   min-height: 0;
   overflow: hidden;
   position: relative;
+}
+
+.compareStage.isSingle .comparePanel {
+  height: clamp(300px, 38vh, 440px);
 }
 
 .comparePanel.fromLeft { animation: slideBlurLeft .75s var(--ease) both; }
@@ -688,6 +698,11 @@ svg { width: 18px; height: 18px; }
   grid-template-columns: minmax(130px, .72fr) repeat(2, minmax(0, 1fr));
   padding: 13px 18px;
   min-width: 0;
+}
+
+.specGrid div.isSingle,
+.specGrid .specHeader.isSingle {
+  grid-template-columns: minmax(140px, .55fr) minmax(0, 1fr);
 }
 
 .specGrid div + div { border-top: 1px solid var(--line); }
