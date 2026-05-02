@@ -383,10 +383,12 @@ svg { width: 18px; height: 18px; }
 .has-comparison .transcript,
 .mode-comparison .transcript {
   border-radius: 20px;
-  height: clamp(88px, 12vh, 128px);
-  max-width: min(980px, calc(100vw - 36px));
+  height: auto;
+  max-height: clamp(104px, 14vh, 156px);
+  max-width: min(1040px, calc(100vw - 36px));
+  min-height: 82px;
   padding: 10px 12px;
-  width: min(900px, calc(100vw - 36px));
+  width: min(980px, calc(100vw - 36px));
 }
 
 .transcript.isVisible {
@@ -405,13 +407,20 @@ svg { width: 18px; height: 18px; }
   overflow-y: auto;
   padding: 8px;
   scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+
+.chatGlow::-webkit-scrollbar {
+  display: none;
 }
 
 .has-comparison .chatGlow,
 .mode-comparison .chatGlow {
-  align-content: end;
-  grid-auto-flow: row;
-  justify-content: stretch;
+  align-content: start;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -441,7 +450,11 @@ svg { width: 18px; height: 18px; }
 
 .has-comparison .chatLine,
 .mode-comparison .chatLine {
+  display: -webkit-box;
   max-width: 100%;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .chatLine.user {
@@ -482,9 +495,13 @@ svg { width: 18px; height: 18px; }
 .mode-comparison .recognized {
   align-self: stretch;
   border-radius: 14px;
+  display: -webkit-box;
   letter-spacing: .05em;
   max-width: 100%;
+  overflow: hidden;
   text-transform: none;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .stream {
@@ -500,11 +517,11 @@ svg { width: 18px; height: 18px; }
 .has-comparison .stream,
 .mode-comparison .stream {
   display: -webkit-box;
-  max-height: 4.1em;
+  max-height: 5.4em;
   overflow: hidden;
   text-align: left;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 4;
 }
 
 .compareStage {
@@ -520,8 +537,8 @@ svg { width: 18px; height: 18px; }
 
 .compareStage.isSingle {
   grid-template-columns: minmax(0, 1fr);
-  max-width: 940px;
-  width: min(940px, calc(100vw - 36px));
+  max-width: 1080px;
+  width: min(1080px, calc(100vw - 36px));
 }
 
 .compareAnchor {
@@ -581,7 +598,7 @@ svg { width: 18px; height: 18px; }
 }
 
 .compareStage.isSingle .comparePanel {
-  height: clamp(300px, 38vh, 440px);
+  height: clamp(340px, 44vh, 520px);
 }
 
 .comparePanel.fromLeft { animation: slideBlurLeft .75s var(--ease) both; }
