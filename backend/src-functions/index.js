@@ -560,14 +560,16 @@ function extractJsonObject(value) {
 
 function inferComparedVehicles(message) {
   const text = trimText(message, 300)
-    .replace(/\b(compare|comparison|between|please|can you|show me|cars?|vehicles?|which|one|is|better|recommend|choose)\b/gi, ' ')
+    .replace(/\b(compare|comparison|between|please|can you|show me|show|check|open|view|display|details|profile|tell me about|what about|look at|cars?|vehicles?|which|one|is|better|recommend|choose)\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
   const parts = text
     .split(/\s+(?:vs\.?|versus|and|or|with|against)\s+/i)
     .map((part) => part.replace(/[?.!,]/g, '').trim())
     .filter(Boolean);
-  return parts.length >= 2 ? parts.slice(0, 2) : ['Vehicle A', 'Vehicle B'];
+  if (parts.length >= 2) return parts.slice(0, 2);
+  if (parts.length === 1) return [parts[0]];
+  return ['Vehicle'];
 }
 
 function imageForVehicle(vehicle, sources) {
@@ -618,18 +620,23 @@ function normalizeVehicle(vehicle, fallbackName, sources) {
 function fallbackComparison(message, sources = []) {
   const names = inferComparedVehicles(message);
   const vehicles = names.map((name) => normalizeVehicle({ name }, name, sources));
+  const isSingle = vehicles.length === 1;
   return {
-    title: `${vehicles[0].name} vs ${vehicles[1].name}`,
-    summary: 'A source-led AT MOTORS dossier. Publicly listed values are shown when available; missing details are marked clearly.',
+    title: isSingle ? `${vehicles[0].name} profile` : `${vehicles[0].name} vs ${vehicles[1].name}`,
+    summary: isSingle
+      ? 'A focused AT MOTORS vehicle profile with key ownership and performance signals.'
+      : 'A source-led AT MOTORS dossier with key ownership and performance signals.',
     vehicles,
     rows: ['Engine', 'Top speed', '0-100 km/h', 'Estimated price', 'Best fit'].map((label) => ({
       label,
       values: [
         trimText(vehicles[0].specs?.[label], 90) || 'Not verified',
-        trimText(vehicles[1].specs?.[label], 90) || 'Not verified',
+        ...(vehicles[1] ? [trimText(vehicles[1].specs?.[label], 90) || 'Not verified'] : []),
       ],
     })),
-    recommendation: 'Use the table to qualify budget, driving style, and test-drive priority before booking a private viewing.',
+    recommendation: isSingle
+      ? 'Use this profile to qualify budget, driving style, and whether to move into a comparison or private viewing.'
+      : 'Use the table to qualify budget, driving style, and test-drive priority before booking a private viewing.',
     sources,
   };
 }
@@ -637,15 +644,15 @@ function fallbackComparison(message, sources = []) {
 function normalizeComparison(raw, message, sources) {
   const fallback = fallbackComparison(message, sources);
   const vehicles = Array.isArray(raw?.vehicles) ? raw.vehicles.slice(0, 2) : [];
-  const normalizedVehicles = [
-    normalizeVehicle(vehicles[0], fallback.vehicles[0].name, sources),
-    normalizeVehicle(vehicles[1], fallback.vehicles[1].name, sources),
-  ];
+  const vehicleCount = Math.max(1, Math.min(2, vehicles.length || fallback.vehicles.length));
+  const normalizedVehicles = Array.from({ length: vehicleCount }, (_, index) => (
+    normalizeVehicle(vehicles[index], fallback.vehicles[index]?.name || fallback.vehicles[0].name, sources)
+  ));
 
   const rowLabels = ['Engine', 'Top speed', '0-100 km/h', 'Estimated price', 'Best fit'];
   const normalizeRowValue = (label, value, index) => {
     const cleaned = trimText(value, 90);
-    const fallbackValue = trimText(normalizedVehicles[index].specs?.[label], 90);
+    const fallbackValue = trimText(normalizedVehicles[index]?.specs?.[label], 90);
     if (isMissingSourceValue(cleaned)) return fallbackValue || 'Not verified';
     if (/price/i.test(label) && (!/AED/i.test(cleaned) || /USD|\$/i.test(cleaned))) {
       return fallbackValue || 'Not verified';
@@ -656,7 +663,7 @@ function normalizeComparison(raw, message, sources) {
     label,
     values: [
       trimText(normalizedVehicles[0].specs?.[label] || normalizedVehicles[0].specs?.[label.toLowerCase()] || '', 90) || 'Not verified',
-      trimText(normalizedVehicles[1].specs?.[label] || normalizedVehicles[1].specs?.[label.toLowerCase()] || '', 90) || 'Not verified',
+      ...(normalizedVehicles[1] ? [trimText(normalizedVehicles[1].specs?.[label] || normalizedVehicles[1].specs?.[label.toLowerCase()] || '', 90) || 'Not verified'] : []),
     ],
   }));
   const rawRows = Array.isArray(raw?.rows) && raw.rows.length
@@ -677,13 +684,13 @@ function normalizeComparison(raw, message, sources) {
       label,
       values: [
         rawRow?.values?.[0] && rawRow.values[0] !== 'Not verified' ? rawRow.values[0] : fallbackRow.values[0],
-        rawRow?.values?.[1] && rawRow.values[1] !== 'Not verified' ? rawRow.values[1] : fallbackRow.values[1],
+        ...(normalizedVehicles[1] ? [rawRow?.values?.[1] && rawRow.values[1] !== 'Not verified' ? rawRow.values[1] : fallbackRow.values[1]] : []),
       ],
     };
   });
 
   return {
-    title: trimText(raw?.title, 120) || `${normalizedVehicles[0].name} vs ${normalizedVehicles[1].name}`,
+    title: trimText(raw?.title, 120) || (normalizedVehicles[1] ? `${normalizedVehicles[0].name} vs ${normalizedVehicles[1].name}` : `${normalizedVehicles[0].name} profile`),
     summary: trimText(raw?.summary, 360) || fallback.summary,
     recommendation: trimText(raw?.recommendation, 220) || '',
     vehicles: normalizedVehicles,
@@ -709,10 +716,10 @@ async function buildStructuredComparison(message, context, sourceBundles, search
     { role: 'system', content: `Live source context:\n${sourceText}` },
     {
       role: 'user',
-      content: `Create a luxury automotive comparison from this request: "${message}".
+      content: `Create a luxury automotive comparison or single-vehicle profile from this request: "${message}".
 Return JSON with this exact shape:
 {
-  "title": "Vehicle A vs Vehicle B",
+  "title": "Vehicle A profile or Vehicle A vs Vehicle B",
   "summary": "one polished source-led sentence for the showroom UI",
   "recommendation": "one concise buying guidance sentence based only on listed facts",
   "vehicles": [
@@ -726,6 +733,8 @@ Return JSON with this exact shape:
     {"label":"Estimated price","values":["",""]},
     {"label":"Best fit","values":["",""]}
   ]
+}
+For a single-car request, return exactly one vehicle and each row should contain one value. For a comparison, return two vehicles and two values per row.
 }`,
     },
   ];
