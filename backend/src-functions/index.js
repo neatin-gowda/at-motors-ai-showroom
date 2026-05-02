@@ -91,11 +91,21 @@ const SHOWROOM_MODELS = [
   },
 ];
 
+const ORCHESTRATION_PROMPT = `AT MOTORS orchestration:
+- Classify the user's intent as vehicle_profile, vehicle_comparison, finance, booking, or general_automotive.
+- For profiles and comparisons, resolve the requested model names first.
+- Use source context and document context before fallback values.
+- Keep the customer-facing response premium, concise, and automotive-only.
+- Never apologize for internal routing or mention agent/tool/backend details.`;
+
 const FALLBACK_MODEL_CATALOG = [
   {
     aliases: ['ford', 'mustang', 'mustang gt'],
     specs: {
       Engine: '5.0L V8, approx. 480+ hp',
+      Power: 'Approx. 480+ hp',
+      Drivetrain: 'Rear-wheel drive, automatic or manual by trim',
+      Character: 'Muscle coupe, emotional sound, strong daily usability',
       'Top speed': '250-290 km/h approx.',
       '0-100 km/h': '4.3s approx.',
       'Estimated price': 'AED 255,000-280,000 approx.',
@@ -136,6 +146,9 @@ const FALLBACK_MODEL_CATALOG = [
     aliases: ['jaguar', 'f-pace', 'f pace'],
     specs: {
       Engine: 'Petrol, mild-hybrid options by trim',
+      Power: 'Approx. 246-542 hp by trim',
+      Drivetrain: 'All-wheel drive by most regional trims',
+      Character: 'Sport-luxury SUV with British design and road presence',
       'Top speed': 'Approx. 217-286 km/h by trim',
       '0-100 km/h': 'Approx. 4.0-7.3s by trim',
       'Estimated price': 'AED 290,000-520,000 approx.',
@@ -146,6 +159,9 @@ const FALLBACK_MODEL_CATALOG = [
     aliases: ['land rover', 'defender'],
     specs: {
       Engine: 'Petrol mild-hybrid options by trim',
+      Power: 'Approx. 296-518 hp by trim',
+      Drivetrain: 'All-wheel drive with terrain systems',
+      Character: 'Iconic luxury 4x4 with serious off-road credibility',
       'Top speed': 'Approx. 191-240 km/h by trim',
       '0-100 km/h': 'Approx. 5.2-8.0s by trim',
       'Estimated price': 'AED 280,000-650,000 approx.',
@@ -166,6 +182,9 @@ const FALLBACK_MODEL_CATALOG = [
     aliases: ['maserati', 'mc20'],
     specs: {
       Engine: '3.0L twin-turbo Nettuno V6',
+      Power: 'Approx. 621 hp',
+      Drivetrain: 'Rear-wheel drive, dual-clutch transmission',
+      Character: 'Mid-engine Italian supercar with exotic theatre',
       'Top speed': '325 km/h approx.',
       '0-100 km/h': '2.9s approx.',
       'Estimated price': 'AED 1.1M-1.4M approx.',
@@ -186,6 +205,9 @@ const FALLBACK_MODEL_CATALOG = [
     aliases: ['ferrari', '296', '296 gtb', '296 gts'],
     specs: {
       Engine: 'V6 plug-in hybrid, 800+ hp combined',
+      Power: 'Approx. 819 hp combined',
+      Drivetrain: 'Rear-wheel drive hybrid supercar',
+      Character: 'Ferrari hybrid performance with compact supercar agility',
       'Top speed': '330 km/h approx.',
       '0-100 km/h': '2.9s approx.',
       'Estimated price': 'AED 1.4M-1.8M approx.',
@@ -649,7 +671,7 @@ function normalizeComparison(raw, message, sources) {
     normalizeVehicle(vehicles[index], fallback.vehicles[index]?.name || fallback.vehicles[0].name, sources)
   ));
 
-  const rowLabels = ['Engine', 'Top speed', '0-100 km/h', 'Estimated price', 'Best fit'];
+  const priorityLabels = ['Engine', 'Power', 'Drivetrain', 'Top speed', '0-100 km/h', 'Estimated price', 'Character', 'Best fit'];
   const normalizeRowValue = (label, value, index) => {
     const cleaned = trimText(value, 90);
     const fallbackValue = trimText(normalizedVehicles[index]?.specs?.[label], 90);
@@ -659,7 +681,11 @@ function normalizeComparison(raw, message, sources) {
     }
     return cleaned || fallbackValue || 'Not verified';
   };
-  const rowsFromModelSpecs = rowLabels.map((label) => ({
+  const fallbackLabels = Array.from(new Set([
+    ...priorityLabels,
+    ...normalizedVehicles.flatMap((vehicle) => Object.keys(vehicle.specs || {})),
+  ]));
+  const rowsFromModelSpecs = fallbackLabels.map((label) => ({
     label,
     values: [
       trimText(normalizedVehicles[0].specs?.[label] || normalizedVehicles[0].specs?.[label.toLowerCase()] || '', 90) || 'Not verified',
@@ -677,7 +703,9 @@ function normalizeComparison(raw, message, sources) {
         ],
     })).filter((row) => row.label)
     : [];
-  const rows = rowLabels.map((label) => {
+  const rawLabels = rawRows.map((row) => row.label).filter(Boolean);
+  const finalLabels = Array.from(new Set([...priorityLabels, ...rawLabels, ...fallbackLabels])).slice(0, 12);
+  const rows = finalLabels.map((label) => {
     const rawRow = rawRows.find((row) => row.label.toLowerCase() === label.toLowerCase());
     const fallbackRow = rowsFromModelSpecs.find((row) => row.label === label);
     return {
@@ -712,6 +740,7 @@ async function buildStructuredComparison(message, context, sourceBundles, search
     : 'No public source pages could be fetched. Return a useful structure but mark unavailable facts as "Not listed on source".';
   const messages = [
     { role: 'system', content: `${SYSTEM_PROMPT}\nReturn only valid JSON for the UI. Do not wrap in markdown. Use the supplied source pages first for prices, specifications, and model names. If the source does not list a price or spec, write "Not listed on source" so the application can use its fallback dataset.` },
+    { role: 'system', content: ORCHESTRATION_PROMPT },
     { role: 'system', content: context.text ? `Showroom context:\n${context.text}` : 'No uploaded showroom context is available yet.' },
     { role: 'system', content: `Live source context:\n${sourceText}` },
     {
@@ -728,13 +757,16 @@ Return JSON with this exact shape:
   ],
   "rows": [
     {"label":"Engine","values":["",""]},
+    {"label":"Power","values":["",""]},
+    {"label":"Drivetrain","values":["",""]},
     {"label":"Top speed","values":["",""]},
     {"label":"0-100 km/h","values":["",""]},
     {"label":"Estimated price","values":["",""]},
+    {"label":"Character","values":["",""]},
     {"label":"Best fit","values":["",""]}
   ]
 }
-For a single-car request, return exactly one vehicle and each row should contain one value. For a comparison, return two vehicles and two values per row.
+For a single-car request, return exactly one vehicle and each row should contain one value. For a comparison, return two vehicles and two values per row. You may add up to four extra rows when useful, such as range, seating, transmission, warranty, or ownership note.
 }`,
     },
   ];
@@ -916,6 +948,7 @@ app.http('chat', {
 
       const messages = [
         { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: ORCHESTRATION_PROMPT },
         { role: 'system', content: docContext.text ? `Showroom context:\n${docContext.text}` : 'No uploaded showroom context is available yet.' },
         { role: 'system', content: searchContext },
         ...history.map((item) => ({
