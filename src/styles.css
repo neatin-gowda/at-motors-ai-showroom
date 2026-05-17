@@ -154,9 +154,9 @@ svg { width: 18px; height: 18px; }
 
 .heroCopy {
   animation: fadeUp .8s var(--ease) both;
-  bottom: clamp(92px, 10vh, 126px);
+  bottom: clamp(34px, 6vh, 72px);
   left: clamp(22px, 4vw, 58px);
-  max-width: min(560px, calc(100vw - 120px));
+  max-width: min(760px, calc(100vw - 180px));
   position: absolute;
   z-index: 3;
 }
@@ -171,11 +171,12 @@ svg { width: 18px; height: 18px; }
 }
 
 .heroCopy h1 {
-  font-size: clamp(36px, 5.4vw, 82px);
+  font-size: clamp(42px, 4.8vw, 78px);
   font-family: "Cormorant Garamond", serif;
   letter-spacing: 0;
-  line-height: .94;
+  line-height: .9;
   margin: 0;
+  text-wrap: balance;
 }
 
 .orbDock {
@@ -415,45 +416,57 @@ svg { width: 18px; height: 18px; }
 .orb::before {
   animation: orbRotate 12s linear infinite;
   background:
-    radial-gradient(circle at 35% 28%, rgba(255,255,255,.9), transparent 10%),
-    radial-gradient(circle at 68% 70%, rgba(233,119,50,.9), transparent 20%),
-    conic-gradient(from 120deg, var(--white-warm), #7fb6db, var(--ember), var(--stone), var(--white-warm));
+    radial-gradient(circle at 32% 30%, rgba(255,255,255,.78), transparent 10%),
+    radial-gradient(circle at 63% 28%, rgba(108,146,220,.46), transparent 24%),
+    radial-gradient(circle at 70% 72%, rgba(232,116,60,.58), transparent 18%),
+    radial-gradient(circle at 45% 45%, rgba(74,116,210,.92), rgba(26,55,119,.96) 46%, rgba(9,22,55,.98) 78%);
   box-shadow:
-    0 0 calc(40px + 90px * var(--voice-level)) rgba(233,119,50,.38),
-    inset 0 0 40px rgba(255,255,255,.22);
-  height: calc(var(--size) * (.62 + var(--voice-level) * .1));
+    0 0 calc(44px + 88px * var(--voice-level)) rgba(63,117,214,.38),
+    0 0 calc(22px + 58px * var(--voice-level)) rgba(232,116,60,.26),
+    inset 0 24px 52px rgba(255,255,255,.13),
+    inset 0 -34px 58px rgba(1,10,36,.62);
+  height: calc(var(--size) * (.64 + var(--voice-level) * .1));
   transform: scale(calc(1 + var(--voice-level) * .13));
   transition: transform .08s linear, box-shadow .08s linear;
-  width: calc(var(--size) * (.62 + var(--voice-level) * .1));
+  width: calc(var(--size) * (.64 + var(--voice-level) * .1));
 }
 
 .orb::after {
   animation: breathe 2.4s ease-in-out infinite;
-  border: 1px solid rgba(255,255,255,.26);
-  height: calc(var(--size) * (.82 + var(--voice-level) * .2));
-  width: calc(var(--size) * (.82 + var(--voice-level) * .2));
+  border: 1px solid rgba(126,166,236,.42);
+  box-shadow:
+    0 0 34px rgba(65,113,210,.22),
+    inset 0 0 28px rgba(255,255,255,.06);
+  height: calc(var(--size) * (.86 + var(--voice-level) * .18));
+  width: calc(var(--size) * (.86 + var(--voice-level) * .18));
 }
 
 .orb i {
   animation: ripple 1.8s ease-out infinite;
-  border: 1px solid rgba(217,198,163,.38);
-  height: calc(var(--size) * (.94 + var(--voice-level) * .28));
-  width: calc(var(--size) * (.94 + var(--voice-level) * .28));
+  border: 1px solid rgba(232,116,60,.42);
+  box-shadow: 0 0 30px rgba(232,116,60,.16);
+  height: calc(var(--size) * (1.02 + var(--voice-level) * .24));
+  width: calc(var(--size) * (1.02 + var(--voice-level) * .24));
 }
 
 .orb b {
   animation: ripple 1.8s ease-out .46s infinite;
-  border: 1px solid rgba(127,182,219,.3);
-  height: calc(var(--size) * (1.12 + var(--voice-level) * .32));
-  width: calc(var(--size) * (1.12 + var(--voice-level) * .32));
+  border: 1px solid rgba(98,143,230,.32);
+  box-shadow: 0 0 42px rgba(61,103,197,.16);
+  height: calc(var(--size) * (1.2 + var(--voice-level) * .3));
+  width: calc(var(--size) * (1.2 + var(--voice-level) * .3));
 }
 
 .orb span {
-  color: #07152d;
-  font-size: 12px;
-  font-weight: 950;
-  letter-spacing: .16em;
+  color: rgba(255,255,255,.94);
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(14px, 1vw, 18px);
+  font-weight: 700;
+  letter-spacing: .28em;
   position: relative;
+  text-shadow:
+    0 0 18px rgba(255,255,255,.46),
+    0 0 30px rgba(80,125,220,.44);
   text-transform: uppercase;
   z-index: 2;
 }
@@ -943,24 +956,26 @@ svg { width: 18px; height: 18px; }
   border: 1px solid var(--line);
   border-radius: 50%;
   backdrop-filter: blur(18px);
-  bottom: 26px;
+  bottom: auto;
   box-shadow: 0 18px 50px rgba(0,0,0,.28);
   color: rgba(255,255,255,.86);
   display: grid;
   height: 50px;
-  left: clamp(18px, 4vw, 58px);
+  left: auto;
   place-items: center;
   position: fixed;
+  right: clamp(18px, 3vw, 38px);
+  top: calc(50% - 154px);
   transition: transform .25s var(--ease), border-color .25s var(--ease), background .25s var(--ease);
   width: 50px;
-  z-index: 14;
+  z-index: 16;
 }
 
 .chatLauncher:hover,
 .chatLauncher.isOpen {
   background: rgba(233,119,50,.18);
   border-color: rgba(233,119,50,.45);
-  transform: translateY(-2px);
+  transform: translateX(-2px);
 }
 
 .askBar {
@@ -1055,17 +1070,20 @@ svg { width: 18px; height: 18px; }
 
 .liveFooter {
   align-items: center;
-  bottom: 26px;
+  bottom: auto;
   display: flex;
+  flex-direction: column;
   gap: 10px;
   position: fixed;
-  right: clamp(18px, 4vw, 58px);
-  z-index: 13;
+  right: clamp(18px, 3vw, 38px);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 15;
 }
 
 .has-comparison .liveFooter,
 .mode-comparison .liveFooter {
-  bottom: 18px;
+  bottom: auto;
 }
 
 .liveFooter button,
@@ -1082,6 +1100,8 @@ svg { width: 18px; height: 18px; }
   font-weight: 900;
   letter-spacing: .08em;
   min-height: 48px;
+  min-width: 154px;
+  justify-content: center;
   padding: 0 16px;
   text-transform: uppercase;
 }
@@ -1092,7 +1112,7 @@ svg { width: 18px; height: 18px; }
 .mode-comparison .liveDot {
   background: rgba(4,10,22,.74);
   box-shadow: 0 16px 46px rgba(0,0,0,.24);
-  min-height: 44px;
+  min-height: 48px;
   padding: 0 14px;
 }
 
@@ -1253,7 +1273,29 @@ svg { width: 18px; height: 18px; }
     width: auto;
   }
   .chatHistoryPanel.isOpen { transform: translateY(0); }
-  .chatLauncher { bottom: 24px; left: auto; right: 18px; }
-  .liveFooter { bottom: 24px; left: 18px; right: auto; }
-  .heroCopy { bottom: 180px; }
+  .chatLauncher {
+    bottom: auto;
+    left: auto;
+    right: 18px;
+    top: auto;
+    bottom: 96px;
+  }
+  .liveFooter {
+    bottom: 18px;
+    flex-direction: row;
+    left: 18px;
+    right: 18px;
+    top: auto;
+    transform: none;
+  }
+  .liveFooter button,
+  .liveDot {
+    flex: 1;
+    min-width: 0;
+    padding: 0 10px;
+  }
+  .heroCopy {
+    bottom: 130px;
+    max-width: calc(100vw - 108px);
+  }
 }
