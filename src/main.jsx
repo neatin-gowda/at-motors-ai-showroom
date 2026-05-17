@@ -328,7 +328,7 @@ function App() {
     if (!data) return false;
     if (data.session?.shouldEnd || data.uiEvents?.some((event) => event.type === 'session_end')) {
       setStreamText(data.reply || 'Session closed. Tap Talk to AI when you want the concierge again.');
-      window.setTimeout(() => endSession({ preserveTranscript: true }), 450);
+      window.setTimeout(() => endSession(), 1200);
       return true;
     }
 
@@ -340,7 +340,7 @@ function App() {
       setComparison(nextComparison);
       setMode('comparison');
       window.setTimeout(() => {
-        compareAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        compareAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 180);
       return true;
     }
@@ -375,7 +375,7 @@ function App() {
       setStreamText(reason === 'muted'
         ? 'Session closed after microphone mute timeout.'
         : 'Session closed after a quiet moment.');
-      endSession({ preserveTranscript: true });
+      window.setTimeout(() => endSession(), 900);
     }, VOICE_IDLE_TIMEOUT_MS);
   };
 
@@ -505,7 +505,7 @@ function App() {
           // The server may have no active response to cancel.
         }
       }
-      window.setTimeout(() => endSession({ preserveTranscript: true }), 450);
+      window.setTimeout(() => endSession(), 1200);
       return;
     }
     requestComparisonFromText(value, { immediate: true });
@@ -543,6 +543,7 @@ function App() {
       setStreamText('');
       setRecognized('');
       setMode('listening');
+      stageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       if (modelRespondingRef.current && realtimeRef.current?.readyState === WebSocket.OPEN) {
         try {
           realtimeRef.current.send(JSON.stringify({ type: 'response.cancel' }));
@@ -734,7 +735,7 @@ function App() {
       setComparison(data.comparison);
       setMode('comparison');
       window.setTimeout(() => {
-        compareAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        compareAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 180);
     } catch {
       if (requestSeq === comparisonRequestSeqRef.current) {
@@ -983,11 +984,9 @@ function App() {
           <span className="brandMark">AT</span>
           <strong>MOTORS</strong>
         </div>
-        <nav aria-label="AT Motors sections">
-          <span>Concierge</span>
-          <span>Voice</span>
-          <span>Private Viewing</span>
-        </nav>
+        <div className="headerSupport">
+          <span>24/7 AI voice + chat support</span>
+        </div>
       </header>
 
       <section className="stage" ref={stageRef}>
@@ -1012,8 +1011,8 @@ function App() {
 
         {mode === 'background' && !comparison && (
           <div className="heroCopy">
-            <p>Luxury AI showroom</p>
-            <h1>Converge.</h1>
+            <p>Luxury automotive intelligence</p>
+            <h1>Adventure, refined.</h1>
           </div>
         )}
       </section>
