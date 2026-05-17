@@ -63,17 +63,14 @@ Update `backend/local.settings.json` with:
 
 ```json
 {
-  "COSMOS_ENDPOINT": "https://YOUR-COSMOS-ACCOUNT.documents.azure.com:443/",
-  "COSMOS_KEY": "YOUR_COSMOS_PRIMARY_KEY",
-  "COSMOS_DB": "atmotors",
+  "COSMOS_CONNECTION_STRING": "AccountEndpoint=https://YOUR-COSMOS-ACCOUNT.documents.azure.com:443/;AccountKey=YOUR_COSMOS_PRIMARY_KEY;",
+  "COSMOS_DATABASE": "atmotors",
   "AZURE_OPENAI_ENDPOINT": "https://YOUR-AZURE-OPENAI-RESOURCE.openai.azure.com",
   "AZURE_OPENAI_API_KEY": "YOUR_AZURE_OPENAI_KEY",
-  "AZURE_OPENAI_DEPLOYMENT": "gpt-4.1-mini",
-  "AZURE_OPENAI_API_VERSION": "2024-10-21",
-  "AZURE_REALTIME_ENDPOINT": "https://YOUR-AZURE-OPENAI-RESOURCE.openai.azure.com",
-  "AZURE_REALTIME_API_KEY": "YOUR_AZURE_OPENAI_KEY",
-  "AZURE_REALTIME_DEPLOYMENT": "gpt-realtime-mini",
-  "AZURE_REALTIME_API_VERSION": "2025-04-01-preview",
+  "AZURE_OPENAI_CHAT_DEPLOYMENT": "gpt-4.1-mini",
+  "AZURE_OPENAI_CHAT_API_VERSION": "2024-10-21",
+  "AZURE_OPENAI_REALTIME_DEPLOYMENT": "gpt-realtime-mini",
+  "AZURE_OPENAI_REALTIME_API_VERSION": "2025-04-01-preview",
   "BING_SEARCH_ENDPOINT": "https://api.bing.microsoft.com/v7.0/search",
   "BING_SEARCH_KEY": "YOUR_BING_SEARCH_KEY"
 }
@@ -193,17 +190,14 @@ You can copy this token from the Azure Static Web App deployment token.
 7. In Azure Static Web Apps configuration/app settings, add:
 
 ```text
-COSMOS_ENDPOINT
-COSMOS_KEY
-COSMOS_DB
+COSMOS_CONNECTION_STRING
+COSMOS_DATABASE
 AZURE_OPENAI_ENDPOINT
 AZURE_OPENAI_API_KEY
-AZURE_OPENAI_DEPLOYMENT
-AZURE_OPENAI_API_VERSION
-AZURE_REALTIME_ENDPOINT
-AZURE_REALTIME_API_KEY
-AZURE_REALTIME_DEPLOYMENT
-AZURE_REALTIME_API_VERSION
+AZURE_OPENAI_CHAT_DEPLOYMENT
+AZURE_OPENAI_CHAT_API_VERSION
+AZURE_OPENAI_REALTIME_DEPLOYMENT
+AZURE_OPENAI_REALTIME_API_VERSION
 BING_SEARCH_ENDPOINT
 BING_SEARCH_KEY
 ```
@@ -211,10 +205,10 @@ BING_SEARCH_KEY
 Recommended values:
 
 ```text
-COSMOS_DB=atmotors
-AZURE_OPENAI_API_VERSION=2024-10-21
-AZURE_REALTIME_DEPLOYMENT=gpt-realtime-mini
-AZURE_REALTIME_API_VERSION=2025-04-01-preview
+COSMOS_DATABASE=atmotors
+AZURE_OPENAI_CHAT_API_VERSION=2024-10-21
+AZURE_OPENAI_REALTIME_DEPLOYMENT=gpt-realtime-mini
+AZURE_OPENAI_REALTIME_API_VERSION=2025-04-01-preview
 BING_SEARCH_ENDPOINT=https://api.bing.microsoft.com/v7.0/search
 ```
 
@@ -247,11 +241,11 @@ Realtime setup:
 
 - Deploy a realtime model such as `gpt-realtime`, `gpt-realtime-mini`, `gpt-4o-realtime-preview`, or `gpt-4o-mini-realtime-preview` in a supported region.
 - `gpt-4.1-mini` is not a realtime speech model.
-- Set `AZURE_REALTIME_ENDPOINT`, `AZURE_REALTIME_API_KEY`, `AZURE_REALTIME_DEPLOYMENT`, and `AZURE_REALTIME_API_VERSION` in Static Web App environment variables.
+- Set `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_REALTIME_DEPLOYMENT`, and `AZURE_OPENAI_REALTIME_API_VERSION` in backend app settings.
 - Server VAD and barge-in are enabled with `turn_detection.create_response` and `turn_detection.interrupt_response`.
 
 Current implementation:
 
 - `gpt-4.1-mini` remains the normal chat fallback.
-- The realtime deployment is used first through WebSocket when `AZURE_REALTIME_*` variables are configured.
+- The realtime deployment is used first through WebSocket when `AZURE_OPENAI_REALTIME_*` variables are configured.
 - Typed asks also use realtime audio output first, then fall back to the chat endpoint if realtime is unavailable.

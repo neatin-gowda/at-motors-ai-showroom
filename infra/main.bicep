@@ -184,10 +184,11 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
           env: [
             { name: 'PORT', value: '8080' }
             { name: 'AZURE_OPENAI_ENDPOINT', value: azureOpenAIEndpoint }
-            { name: 'AZURE_OPENAI_DEPLOYMENT', value: azureOpenAIChatDeployment }
-            { name: 'AZURE_REALTIME_DEPLOYMENT', value: azureOpenAIRealtimeDeployment }
+            { name: 'AZURE_OPENAI_CHAT_DEPLOYMENT', value: azureOpenAIChatDeployment }
+            { name: 'AZURE_OPENAI_CHAT_API_VERSION', value: '2024-10-21' }
+            { name: 'AZURE_OPENAI_REALTIME_DEPLOYMENT', value: azureOpenAIRealtimeDeployment }
+            { name: 'AZURE_OPENAI_REALTIME_API_VERSION', value: '2025-04-01-preview' }
             { name: 'AZURE_OPENAI_API_KEY', secretRef: 'azure-openai-key' }
-            { name: 'AZURE_REALTIME_API_KEY', secretRef: 'azure-openai-key' }
             { name: 'WSS_SESSION_SECRET', secretRef: 'wss-session-secret' }
             { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsights.properties.ConnectionString }
           ]

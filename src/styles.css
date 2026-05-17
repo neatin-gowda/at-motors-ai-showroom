@@ -105,6 +105,8 @@ svg { width: 18px; height: 18px; }
   font-size: 11px;
   font-weight: 750;
   letter-spacing: .24em;
+  margin-left: auto;
+  margin-right: clamp(330px, 31vw, 520px);
   text-transform: uppercase;
 }
 
@@ -960,14 +962,14 @@ svg { width: 18px; height: 18px; }
   box-shadow: 0 18px 50px rgba(0,0,0,.28);
   color: rgba(255,255,255,.86);
   display: grid;
-  height: 50px;
+  height: 42px;
   left: auto;
   place-items: center;
   position: fixed;
-  right: clamp(18px, 3vw, 38px);
-  top: calc(50% - 154px);
+  right: clamp(312px, 24vw, 382px);
+  top: 15px;
   transition: transform .25s var(--ease), border-color .25s var(--ease), background .25s var(--ease);
-  width: 50px;
+  width: 42px;
   z-index: 16;
 }
 
@@ -1072,12 +1074,12 @@ svg { width: 18px; height: 18px; }
   align-items: center;
   bottom: auto;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  flex-direction: row;
+  gap: 8px;
   position: fixed;
-  right: clamp(18px, 3vw, 38px);
-  top: 50%;
-  transform: translateY(-50%);
+  right: clamp(18px, 4vw, 58px);
+  top: 14px;
+  transform: none;
   z-index: 15;
 }
 
@@ -1099,10 +1101,10 @@ svg { width: 18px; height: 18px; }
   font-size: 12px;
   font-weight: 900;
   letter-spacing: .08em;
-  min-height: 48px;
-  min-width: 154px;
+  min-height: 44px;
+  min-width: 118px;
   justify-content: center;
-  padding: 0 16px;
+  padding: 0 13px;
   text-transform: uppercase;
 }
 
@@ -1112,8 +1114,8 @@ svg { width: 18px; height: 18px; }
 .mode-comparison .liveDot {
   background: rgba(4,10,22,.74);
   box-shadow: 0 16px 46px rgba(0,0,0,.24);
-  min-height: 48px;
-  padding: 0 14px;
+  min-height: 44px;
+  padding: 0 13px;
 }
 
 .liveFooter button {
@@ -1209,6 +1211,8 @@ svg { width: 18px; height: 18px; }
   }
   .headerSupport {
     gap: 14px;
+    margin-left: 0;
+    margin-right: 0;
     max-width: 100%;
     overflow-x: auto;
     padding-bottom: 2px;
@@ -1279,6 +1283,8 @@ svg { width: 18px; height: 18px; }
     right: 18px;
     top: auto;
     bottom: 96px;
+    height: 50px;
+    width: 50px;
   }
   .liveFooter {
     bottom: 18px;

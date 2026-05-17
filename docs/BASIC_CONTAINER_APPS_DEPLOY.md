@@ -26,6 +26,7 @@ WSS_SECRET="$(openssl rand -hex 32)"
 ```
 
 `REALTIME_DEPLOYMENT` must be the exact Azure AI Foundry deployment name for the realtime model.
+The Container App settings use `AZURE_OPENAI_CHAT_DEPLOYMENT`, `AZURE_OPENAI_CHAT_API_VERSION`, `AZURE_OPENAI_REALTIME_DEPLOYMENT`, and `AZURE_OPENAI_REALTIME_API_VERSION`.
 
 ## 3. Provision Basic Resources
 

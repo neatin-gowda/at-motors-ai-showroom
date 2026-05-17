@@ -283,10 +283,10 @@ function isAutomotiveTopic(message) {
 }
 
 function getRealtimeWebSocketUrl() {
-  const endpoint = (process.env.AZURE_REALTIME_ENDPOINT || process.env.AZURE_OPENAI_ENDPOINT || '').replace(/\/+$/, '');
-  const key = process.env.AZURE_REALTIME_API_KEY || process.env.AZURE_OPENAI_API_KEY;
-  const deployment = process.env.AZURE_REALTIME_DEPLOYMENT;
-  const apiVersion = process.env.AZURE_REALTIME_API_VERSION || '2025-04-01-preview';
+  const endpoint = (process.env.AZURE_OPENAI_REALTIME_ENDPOINT || process.env.AZURE_REALTIME_ENDPOINT || process.env.AZURE_OPENAI_ENDPOINT || '').replace(/\/+$/, '');
+  const key = process.env.AZURE_OPENAI_REALTIME_API_KEY || process.env.AZURE_REALTIME_API_KEY || process.env.AZURE_OPENAI_API_KEY;
+  const deployment = process.env.AZURE_OPENAI_REALTIME_DEPLOYMENT || process.env.AZURE_REALTIME_DEPLOYMENT;
+  const apiVersion = process.env.AZURE_OPENAI_REALTIME_API_VERSION || process.env.AZURE_REALTIME_API_VERSION || '2025-04-01-preview';
   if (!endpoint || !key || !deployment) return null;
 
   const host = endpoint.replace(/^https?:\/\//, '');
@@ -300,8 +300,8 @@ function getRealtimeWebSocketUrl() {
 async function callAzureOpenAI(messages, options = {}) {
   const endpoint = (process.env.AZURE_OPENAI_ENDPOINT || '').replace(/\/+$/, '');
   const key = process.env.AZURE_OPENAI_API_KEY;
-  const deployment = process.env.AZURE_OPENAI_DEPLOYMENT;
-  const apiVersion = process.env.AZURE_OPENAI_API_VERSION || '2024-10-21';
+  const deployment = process.env.AZURE_OPENAI_CHAT_DEPLOYMENT || process.env.AZURE_OPENAI_DEPLOYMENT;
+  const apiVersion = process.env.AZURE_OPENAI_CHAT_API_VERSION || process.env.AZURE_OPENAI_API_VERSION || '2024-10-21';
   if (!endpoint || !key || !deployment) return null;
 
   const response = await fetch(`${endpoint}/openai/deployments/${deployment}/chat/completions?api-version=${apiVersion}`, {
@@ -838,8 +838,8 @@ app.http('realtime-session', {
     if (!url) return serverError('Realtime environment variables are not configured.');
     return ok({
       url,
-      deployment: process.env.AZURE_REALTIME_DEPLOYMENT,
-      apiVersion: process.env.AZURE_REALTIME_API_VERSION || '2025-04-01-preview',
+      deployment: process.env.AZURE_OPENAI_REALTIME_DEPLOYMENT || process.env.AZURE_REALTIME_DEPLOYMENT,
+      apiVersion: process.env.AZURE_OPENAI_REALTIME_API_VERSION || process.env.AZURE_REALTIME_API_VERSION || '2025-04-01-preview',
     });
   },
 });
