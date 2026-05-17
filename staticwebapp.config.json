@@ -10,9 +10,10 @@
     }
   ],
   "globalHeaders": {
-    "Content-Security-Policy": "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com; script-src 'self'; connect-src 'self' https://*.azurewebsites.net https://*.openai.azure.com wss://*.openai.azure.com",
+    "Content-Security-Policy": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com; script-src 'self'; connect-src 'self' https://*.azurewebsites.net https://*.azurecontainerapps.io wss://*.azurecontainerapps.io",
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
-    "Referrer-Policy": "strict-origin-when-cross-origin"
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), geolocation=(), payment=(), usb=()"
   }
 }

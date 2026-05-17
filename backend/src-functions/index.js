@@ -9,6 +9,11 @@ const {
   trimText,
   log,
 } = require('./shared');
+const { runAgentTurn } = require('./agent/graph');
+const {
+  SHOWROOM_MODELS: AGENT_SHOWROOM_MODELS,
+  SOURCE_REGISTRY: AGENT_SOURCE_REGISTRY,
+} = require('./agent/catalog');
 
 const SYSTEM_PROMPT = `You are the AT MOTORS luxury automotive AI concierge.
 Represent a premium showroom with Ford Mustang, Jaguar, Land Rover, Maserati, and Ferrari.
@@ -833,6 +838,9 @@ app.http('realtime-session', {
   authLevel: 'anonymous',
   route: 'at-motors/realtime-session',
   handler: async () => {
+    if (process.env.ALLOW_BROWSER_REALTIME_KEY !== 'true') {
+      return serverError('Realtime browser key exposure is disabled. Use the production WSS broker endpoint.');
+    }
     const url = getRealtimeWebSocketUrl();
     if (!url) return serverError('Realtime environment variables are not configured.');
     return ok({
@@ -845,7 +853,7 @@ app.http('realtime-session', {
 
 app.http('documents-list', {
   methods: ['GET'],
-  authLevel: 'anonymous',
+  authLevel: 'function',
   route: 'at-motors/documents',
   handler: async () => {
     try {
@@ -867,8 +875,8 @@ app.http('showroom-models', {
   handler: async (request, context) => {
     try {
       return ok({
-        vehicles: SHOWROOM_MODELS,
-        sources: configuredSourceRegistry().map((source) => ({ name: source.brand, url: source.url })),
+        vehicles: AGENT_SHOWROOM_MODELS.length ? AGENT_SHOWROOM_MODELS : SHOWROOM_MODELS,
+        sources: AGENT_SOURCE_REGISTRY.length ? AGENT_SOURCE_REGISTRY.map((source) => ({ name: source.brand, url: source.url })) : configuredSourceRegistry().map((source) => ({ name: source.brand, url: source.url })),
       });
     } catch (error) {
       log(context, 'warn', 'Showroom models failed', { error: error.message });
@@ -877,9 +885,40 @@ app.http('showroom-models', {
   },
 });
 
-app.http('documents-create', {
+app.http('agent-turn', {
   methods: ['POST'],
   authLevel: 'anonymous',
+  route: 'at-motors/agent-turn',
+  handler: async (request, context) => {
+    try {
+      const body = await request.json().catch(() => ({}));
+      const message = trimText(body.message, 2000);
+      if (!message) return badRequest('Message is required.');
+
+      const result = await runAgentTurn({
+        message,
+        sessionId: body.sessionId,
+        history: Array.isArray(body.history) ? body.history.slice(-8) : [],
+      }, {
+        generateReply: callAzureOpenAI,
+      });
+
+      log(context, 'info', 'Agent turn completed', {
+        intent: result.intent,
+        toolsUsed: result.toolsUsed.map((tool) => tool.name),
+        latencyMs: result.latencyMs,
+      });
+      return ok(result);
+    } catch (error) {
+      log(context, 'error', 'Agent turn failed', { error: error.message });
+      return serverError('Could not complete the AT MOTORS agent turn.');
+    }
+  },
+});
+
+app.http('documents-create', {
+  methods: ['POST'],
+  authLevel: 'function',
   route: 'at-motors/documents',
   handler: async (request, context) => {
     try {

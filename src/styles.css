@@ -1,14 +1,23 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;650;750;850;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;650;750;850;900&display=swap');
 
 :root {
   --voice-level: 0;
-  --navy: #020814;
+  --white-warm: #F8F4ED;
+  --white: #FFFFFF;
+  --linen: #EDE4D3;
+  --stone: #C9B89A;
+  --gold: #B89968;
+  --bronze: #8B6B3F;
+  --navy: #1E2638;
+  --muted-blue: #6B7280;
+  --ember: #E8743C;
+  --sunset: #F4A261;
   --glass: rgba(10, 20, 38, .45);
   --line: rgba(255, 255, 255, .14);
-  --text: #f8f4ec;
-  --muted: rgba(248, 244, 236, .68);
-  --amber: #e97732;
-  --beige: #d9c6a3;
+  --text: var(--white-warm);
+  --muted: rgba(248, 244, 237, .68);
+  --amber: var(--ember);
+  --beige: var(--stone);
   --ease: cubic-bezier(.16, 1, .3, 1);
   background: var(--navy);
   color: var(--text);
@@ -60,6 +69,7 @@ svg { width: 18px; height: 18px; }
   letter-spacing: .18em;
   position: fixed;
   top: 28px;
+  transition: opacity .28s var(--ease), transform .28s var(--ease);
   z-index: 10;
 }
 
@@ -85,9 +95,17 @@ svg { width: 18px; height: 18px; }
 
 .has-comparison .stage,
 .mode-comparison .stage {
-  gap: clamp(14px, 2vh, 24px);
+  align-items: center;
+  gap: clamp(14px, 1.6vh, 20px);
+  justify-content: flex-start;
   min-height: auto;
-  padding-bottom: 220px;
+  padding-top: 78px;
+  padding-bottom: 180px;
+}
+
+.has-comparison .brand,
+.mode-comparison .brand {
+  position: absolute;
 }
 
 .heroCopy {
@@ -109,7 +127,8 @@ svg { width: 18px; height: 18px; }
 
 .heroCopy h1 {
   font-size: clamp(38px, 6vw, 88px);
-  letter-spacing: -.035em;
+  font-family: "Cormorant Garamond", serif;
+  letter-spacing: 0;
   line-height: .94;
   margin: 0;
 }
@@ -127,12 +146,13 @@ svg { width: 18px; height: 18px; }
 
 .mode-comparison .orbDock,
 .has-comparison .orbDock {
-  gap: 10px;
-  margin-top: clamp(6px, 1.5vh, 18px);
+  gap: 8px;
+  margin-top: 0;
+  width: 100%;
 }
 
 .mode-comparison .orb,
-.has-comparison .orb { --size: clamp(112px, 13vw, 168px); }
+.has-comparison .orb { --size: clamp(92px, 10vw, 128px); }
 
 .holoRail {
   align-items: center;
@@ -147,6 +167,14 @@ svg { width: 18px; height: 18px; }
   perspective: 900px;
   scrollbar-width: none;
   width: min(1120px, calc(100vw - 44px));
+}
+
+.has-comparison .holoRail,
+.mode-comparison .holoRail {
+  gap: 12px;
+  min-height: 74px;
+  padding: 2px 6px 8px;
+  width: min(1040px, calc(100vw - 36px));
 }
 
 .holoRail::-webkit-scrollbar {
@@ -177,6 +205,18 @@ svg { width: 18px; height: 18px; }
   transition: transform .28s var(--ease), border-color .28s var(--ease), box-shadow .28s var(--ease);
   flex: 0 0 auto;
   width: clamp(150px, 16vw, 210px);
+}
+
+.has-comparison .holoCar,
+.mode-comparison .holoCar {
+  border-radius: 15px;
+  height: 66px;
+  width: clamp(136px, 15vw, 176px);
+}
+
+.has-comparison .holoCar::before,
+.mode-comparison .holoCar::before {
+  top: 10px;
 }
 
 .holoCar:hover,
@@ -243,6 +283,12 @@ svg { width: 18px; height: 18px; }
   text-transform: uppercase;
 }
 
+.has-comparison .holoCar span,
+.mode-comparison .holoCar span {
+  bottom: 23px;
+  font-size: 10px;
+}
+
 .holoCar small {
   bottom: 12px;
   color: rgba(248,244,236,.76);
@@ -251,6 +297,12 @@ svg { width: 18px; height: 18px; }
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.has-comparison .holoCar small,
+.mode-comparison .holoCar small {
+  bottom: 9px;
+  font-size: 9px;
 }
 
 .holoCar em {
@@ -319,7 +371,7 @@ svg { width: 18px; height: 18px; }
   background:
     radial-gradient(circle at 35% 28%, rgba(255,255,255,.9), transparent 10%),
     radial-gradient(circle at 68% 70%, rgba(233,119,50,.9), transparent 20%),
-    conic-gradient(from 120deg, #f8f4ec, #7fb6db, #e97732, #d9c6a3, #f8f4ec);
+    conic-gradient(from 120deg, var(--white-warm), #7fb6db, var(--ember), var(--stone), var(--white-warm));
   box-shadow:
     0 0 calc(40px + 90px * var(--voice-level)) rgba(233,119,50,.38),
     inset 0 0 40px rgba(255,255,255,.22);
@@ -380,15 +432,33 @@ svg { width: 18px; height: 18px; }
   width: min(840px, calc(100vw - 36px));
 }
 
+.transcript:not(.isVisible) {
+  border-width: 0;
+  height: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding-bottom: 0;
+  padding-top: 0;
+}
+
 .has-comparison .transcript,
 .mode-comparison .transcript {
   border-radius: 20px;
   height: auto;
-  max-height: clamp(104px, 14vh, 156px);
-  max-width: min(1040px, calc(100vw - 36px));
-  min-height: 82px;
+  max-height: 116px;
+  max-width: min(960px, calc(100vw - 36px));
+  min-height: 64px;
   padding: 10px 12px;
-  width: min(980px, calc(100vw - 36px));
+  width: min(920px, calc(100vw - 36px));
+}
+
+.has-comparison .transcript:not(.isVisible),
+.mode-comparison .transcript:not(.isVisible) {
+  border-width: 0;
+  height: 0;
+  min-height: 0;
+  padding-bottom: 0;
+  padding-top: 0;
 }
 
 .transcript.isVisible {
@@ -419,10 +489,11 @@ svg { width: 18px; height: 18px; }
   align-content: start;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   justify-content: flex-start;
   overflow-x: hidden;
   overflow-y: auto;
+  padding: 6px;
 }
 
 .chatLine {
@@ -442,8 +513,8 @@ svg { width: 18px; height: 18px; }
 .mode-comparison .chatLine,
 .mode-comparison .recognized,
 .mode-comparison .stream {
-  font-size: 12px;
-  line-height: 1.35;
+  font-size: 11px;
+  line-height: 1.32;
   max-width: 100%;
   white-space: normal;
 }
@@ -517,11 +588,11 @@ svg { width: 18px; height: 18px; }
 .has-comparison .stream,
 .mode-comparison .stream {
   display: -webkit-box;
-  max-height: 5.4em;
+  max-height: 3.96em;
   overflow: hidden;
   text-align: left;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 3;
 }
 
 .compareStage {
@@ -544,7 +615,9 @@ svg { width: 18px; height: 18px; }
 .compareAnchor {
   display: grid;
   justify-items: center;
-  scroll-margin-top: clamp(18px, 6vh, 72px);
+  margin-top: 8px;
+  padding-bottom: 130px;
+  scroll-margin-top: 18px;
   width: 100%;
 }
 
@@ -553,11 +626,16 @@ svg { width: 18px; height: 18px; }
 }
 
 .compareIntro {
-  align-items: end;
+  align-items: start;
   display: grid;
   gap: 8px;
   grid-column: 1 / -1;
-  grid-template-columns: minmax(180px, .35fr) minmax(0, .65fr);
+  grid-template-columns: minmax(150px, .24fr) minmax(0, .76fr);
+  margin-bottom: 4px;
+}
+
+.compareIntro > div {
+  min-width: 0;
 }
 
 .compareIntro span {
@@ -570,8 +648,9 @@ svg { width: 18px; height: 18px; }
 
 .compareIntro h2 {
   color: #fff;
-  font-size: clamp(24px, 3.3vw, 54px);
-  letter-spacing: -.025em;
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(28px, 3.6vw, 56px);
+  letter-spacing: 0;
   line-height: 1.02;
   margin: 0;
   overflow-wrap: anywhere;
@@ -585,20 +664,21 @@ svg { width: 18px; height: 18px; }
   margin: 0;
   min-width: 0;
   overflow-wrap: anywhere;
+  max-width: 860px;
 }
 
 .comparePanel {
   border: 1px solid rgba(255,255,255,.16);
   border-radius: 18px;
   box-shadow: 0 26px 90px rgba(0,0,0,.42);
-  height: clamp(230px, 28vh, 330px);
+  height: clamp(220px, 26vh, 310px);
   min-height: 0;
   overflow: hidden;
   position: relative;
 }
 
 .compareStage.isSingle .comparePanel {
-  height: clamp(340px, 44vh, 520px);
+  height: clamp(260px, 34vh, 380px);
 }
 
 .comparePanel.fromLeft { animation: slideBlurLeft .75s var(--ease) both; }
@@ -657,7 +737,7 @@ svg { width: 18px; height: 18px; }
   backdrop-filter: blur(13px) saturate(1.2);
   bottom: 18px;
   left: 18px;
-  max-width: min(520px, calc(100% - 36px));
+  max-width: min(460px, calc(100% - 36px));
   padding: 14px 16px;
   position: absolute;
   z-index: 2;
@@ -672,8 +752,9 @@ svg { width: 18px; height: 18px; }
 }
 
 .compareTitle h3 {
-  font-size: clamp(28px, 3.2vw, 48px);
-  letter-spacing: -.035em;
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(26px, 2.8vw, 42px);
+  letter-spacing: 0;
   line-height: .96;
   margin: 7px 0;
   overflow-wrap: anywhere;
@@ -707,13 +788,14 @@ svg { width: 18px; height: 18px; }
   display: grid;
   grid-column: 1 / -1;
   overflow: hidden;
+  width: 100%;
 }
 
 .specGrid div {
   display: grid;
   gap: 10px;
   grid-template-columns: minmax(130px, .72fr) repeat(2, minmax(0, 1fr));
-  padding: 13px 18px;
+  padding: 12px 18px;
   min-width: 0;
 }
 
@@ -886,6 +968,11 @@ svg { width: 18px; height: 18px; }
   z-index: 13;
 }
 
+.has-comparison .liveFooter,
+.mode-comparison .liveFooter {
+  bottom: 18px;
+}
+
 .liveFooter button,
 .liveDot {
   align-items: center;
@@ -902,6 +989,16 @@ svg { width: 18px; height: 18px; }
   min-height: 48px;
   padding: 0 16px;
   text-transform: uppercase;
+}
+
+.has-comparison .liveFooter button,
+.has-comparison .liveDot,
+.mode-comparison .liveFooter button,
+.mode-comparison .liveDot {
+  background: rgba(4,10,22,.74);
+  box-shadow: 0 16px 46px rgba(0,0,0,.24);
+  min-height: 44px;
+  padding: 0 14px;
 }
 
 .liveFooter button {
@@ -945,12 +1042,37 @@ svg { width: 18px; height: 18px; }
   body { overflow: auto; }
   .cockpit { min-height: 100dvh; overflow-y: auto; }
   .stage { min-height: 100dvh; height: auto; padding-bottom: 180px; }
+  .has-comparison .stage,
+  .mode-comparison .stage {
+    padding-top: 72px;
+    padding-bottom: 190px;
+  }
   .orbDock { margin-top: 46px; }
+  .has-comparison .orbDock,
+  .mode-comparison .orbDock {
+    margin-top: 0;
+  }
   .holoRail { flex-wrap: wrap; min-height: 172px; width: calc(100vw - 36px); }
+  .has-comparison .holoRail,
+  .mode-comparison .holoRail {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    min-height: 68px;
+  }
   .holoCar { height: 76px; width: calc(50% - 8px); }
+  .has-comparison .holoCar,
+  .mode-comparison .holoCar {
+    height: 62px;
+    width: 146px;
+  }
   .holoCar em { display: none; }
   .mode-comparison .orb,
-  .has-comparison .orb { --size: clamp(118px, 34vw, 168px); }
+  .has-comparison .orb { --size: clamp(86px, 24vw, 118px); }
+  .has-comparison .transcript,
+  .mode-comparison .transcript {
+    max-height: 126px;
+    min-height: 58px;
+  }
   .compareIntro { grid-template-columns: 1fr; }
   .compareIntro p { grid-column: auto; }
   .compareStage {
@@ -959,7 +1081,12 @@ svg { width: 18px; height: 18px; }
     width: calc(100vw - 36px);
   }
   .comparePanel { height: 270px; min-height: 0; }
+  .compareStage.isSingle .comparePanel { height: 300px; }
   .specGrid div { grid-template-columns: 1fr; text-align: center; }
+  .specGrid div.isSingle,
+  .specGrid .specHeader.isSingle {
+    grid-template-columns: 1fr;
+  }
   .sourceStrip { border-radius: 18px; bottom: auto; flex-wrap: wrap; position: relative; }
   .askBar { bottom: 88px; max-width: calc(100vw - 36px); width: calc(100vw - 36px); }
   .chatLauncher { bottom: 24px; left: auto; right: 18px; }

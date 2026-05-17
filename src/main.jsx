@@ -112,6 +112,7 @@ function Icon({ name }) {
     mic: <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />,
     end: <path d="M21 15.4c-2.2-1.2-5.1-1.9-9-1.9s-6.8.7-9 1.9l2.6 4.2 3.3-1.7v-2.2c.9-.1 1.9-.2 3.1-.2s2.2.1 3.1.2v2.2l3.3 1.7 2.6-4.2Z" />,
     mute: <><path d="M11 5 6 9H3v6h3l5 4V5Z" /><path d="m23 9-6 6" /><path d="m17 9 6 6" /></>,
+    volume: <><path d="M11 5 6 9H3v6h3l5 4V5Z" /><path d="M15.5 8.5a5 5 0 0 1 0 7" /><path d="M18.5 5.5a9 9 0 0 1 0 13" /></>,
     live: <><path d="M4 12a8 8 0 0 1 16 0" /><path d="M8 12a4 4 0 0 1 8 0" /><path d="M12 12h.01" /></>,
     download: <><path d="M12 3v11" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></>,
   };
@@ -273,6 +274,7 @@ function App() {
   const userDraftTranscriptRef = useRef('');
   const chatGlowRef = useRef(null);
   const stageRef = useRef(null);
+  const sessionIdRef = useRef(`at-motors-${Date.now()}-${Math.random().toString(16).slice(2)}`);
   const backgroundImage = comparison?.vehicles?.[0]?.imageUrl || showroomScenes[activeCar].img;
   const hasTranscript = Boolean(conversation.length || recognized || streamText);
 
@@ -306,6 +308,44 @@ function App() {
     const panel = chatGlowRef.current;
     if (panel) panel.scrollTo({ top: panel.scrollHeight, behavior: 'smooth' });
   }, [conversation, recognized, streamText]);
+
+  const applyAgentTurn = (data) => {
+    if (!data) return false;
+    if (data.session?.shouldEnd || data.uiEvents?.some((event) => event.type === 'session_end')) {
+      setStreamText(data.reply || 'Session closed. Tap Talk to AI when you want the concierge again.');
+      window.setTimeout(() => endSession({ preserveTranscript: true }), 450);
+      return true;
+    }
+
+    const visualEvent = (data.uiEvents || []).find((event) => (
+      ['show_comparison', 'show_vehicle_profile'].includes(event.type) && event.comparison
+    ));
+    const nextComparison = visualEvent?.comparison || data.comparison;
+    if (nextComparison) {
+      setComparison(nextComparison);
+      setMode('comparison');
+      window.setTimeout(() => {
+        compareAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 180);
+      return true;
+    }
+    return false;
+  };
+
+  const runAgentTurn = async (message) => {
+    const response = await fetch(`${API_BASE}/at-motors/agent-turn`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message,
+        sessionId: sessionIdRef.current,
+        history: conversation.slice(-6),
+      }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || 'Agent turn failed');
+    return data;
+  };
 
   const stopPlayback = () => {
     playbackSourcesRef.current.forEach((source) => {
@@ -451,6 +491,16 @@ function App() {
     }
 
     if (type === 'input_audio_buffer.speech_started') {
+      if (mutedRef.current) {
+        if (realtimeRef.current?.readyState === WebSocket.OPEN) {
+          try {
+            realtimeRef.current.send(JSON.stringify({ type: 'input_audio_buffer.clear' }));
+          } catch {
+            // The realtime session may already be idle.
+          }
+        }
+        return;
+      }
       stopPlayback();
       responseTextRef.current = '';
       responseHasAudioTranscriptRef.current = false;
@@ -468,6 +518,7 @@ function App() {
     }
 
     if (type === 'input_audio_buffer.speech_stopped' || type === 'input_audio_buffer.committed') {
+      if (mutedRef.current) return;
       setMode('responding');
     }
 
@@ -475,6 +526,7 @@ function App() {
       type === 'conversation.item.input_audio_transcription.completed' ||
       type === 'conversation.item.audio_transcription.completed'
     ) {
+      if (mutedRef.current) return;
       handleUserTranscript(data.transcript || '');
     }
 
@@ -482,6 +534,7 @@ function App() {
       type === 'conversation.item.input_audio_transcription.delta' ||
       type === 'conversation.item.audio_transcription.delta'
     ) {
+      if (mutedRef.current) return;
       userDraftTranscriptRef.current = cleanDisplayText(`${userDraftTranscriptRef.current}${data.delta || ''}`, { trim: false });
       setRecognized(userDraftTranscriptRef.current);
       requestComparisonFromText(userDraftTranscriptRef.current);
@@ -609,6 +662,14 @@ function App() {
     setMode('comparison');
     setStreamText((text) => text || 'Preparing the showroom view...');
     try {
+      try {
+        const agentData = await runAgentTurn(message);
+        if (requestSeq !== comparisonRequestSeqRef.current) return;
+        if (applyAgentTurn(agentData)) return;
+      } catch {
+        // Keep the legacy comparison endpoint as a safe fallback during the agent rollout.
+      }
+
       const response = await fetch(`${API_BASE}/at-motors/comparison`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -785,19 +846,25 @@ function App() {
     setConversation((items) => [...items, { role: 'user', text: value }].slice(-4));
     setMode(comparison || shouldCompare ? 'comparison' : 'responding');
     setInput('');
-    if (shouldCompare) requestComparisonFromText(value, { immediate: true });
 
     try {
-      const response = await fetch(`${API_BASE}/at-motors/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: value, history: [] }),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || 'Chat failed');
-      streamAnswer(data.reply, { speakOutput: false });
+      const agentData = await runAgentTurn(value);
+      applyAgentTurn(agentData);
+      streamAnswer(agentData.reply, { speakOutput: false });
     } catch {
-      streamAnswer('I can compare these models on performance, comfort, ownership fit, price tier, and viewing next steps. For AT MOTORS, I would start with driving style, budget tier, and preferred test-drive timing.', { speakOutput: false });
+      if (shouldCompare) requestComparisonFromText(value, { immediate: true });
+      try {
+        const response = await fetch(`${API_BASE}/at-motors/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: value, history: [] }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'Chat failed');
+        streamAnswer(data.reply, { speakOutput: false });
+      } catch {
+        streamAnswer('I can compare these models on performance, comfort, ownership fit, price tier, and viewing next steps. For AT MOTORS, I would start with driving style, budget tier, and preferred test-drive timing.', { speakOutput: false });
+      }
     }
   };
 
@@ -890,7 +957,9 @@ function App() {
 
       <footer className="liveFooter">
         <div className="liveDot"><Icon name="live" /> Live</div>
-        <button className={muted ? 'isMuted' : ''} onClick={toggleMute}><Icon name="mute" /> {muted ? 'Unmute' : 'Mute'}</button>
+        <button className={muted ? 'isMuted' : ''} onClick={toggleMute} aria-pressed={muted} aria-label={muted ? 'Unmute microphone' : 'Mute microphone'}>
+          <Icon name={muted ? 'mute' : 'volume'} /> {muted ? 'Unmute' : 'Mute Mic'}
+        </button>
         <button className="endButton" onClick={() => endSession()}><Icon name="end" /> End</button>
       </footer>
     </main>

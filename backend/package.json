@@ -5,11 +5,29 @@
   "main": "src-functions/index.js",
   "scripts": {
     "start": "func start",
+    "server": "node src-server/server.js",
     "test": "node --test"
   },
   "dependencies": {
+    "@azure/identity": "^4.10.2",
     "@azure/cosmos": "^4.1.1",
-    "@azure/functions": "^4.5.0"
+    "@azure/functions": "^4.5.0",
+    "@azure/keyvault-secrets": "^4.10.0",
+    "@azure/search-documents": "^12.1.0",
+    "@langchain/core": "^0.3.79",
+    "@langchain/langgraph": "^0.4.9",
+    "ai": "^4.3.19",
+    "applicationinsights": "^3.5.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.1",
+    "helmet": "^8.1.0",
+    "pino": "^9.7.0",
+    "ws": "^8.18.3",
+    "zod": "^3.25.76"
+  },
+  "overrides": {
+    "qs": "^6.14.2"
   },
   "engines": {
     "node": ">=20"
