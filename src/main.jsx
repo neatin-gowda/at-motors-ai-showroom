@@ -106,6 +106,17 @@ function createAudioContext() {
   return new AudioContextClass();
 }
 
+function toWebSocketUrl(value) {
+  if (!value) return '';
+  if (value.startsWith('wss://') || value.startsWith('ws://')) return value;
+  const apiBaseUrl = API_BASE.startsWith('http')
+    ? new URL(API_BASE)
+    : new URL(API_BASE, window.location.origin);
+  const absolute = new URL(value, apiBaseUrl.origin);
+  absolute.protocol = absolute.protocol === 'https:' ? 'wss:' : 'ws:';
+  return absolute.toString();
+}
+
 function Icon({ name }) {
   const paths = {
     chat: <><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z" /><path d="M8 9h8" /><path d="M8 13h5" /></>,
@@ -620,14 +631,24 @@ function App() {
 
     let session = realtimeSessionRef.current;
     if (!session?.url) {
-      const sessionResponse = await fetch(`${API_BASE}/at-motors/realtime-session`);
+      let sessionResponse = await fetch(`${API_BASE}/at-motors/voice-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: sessionIdRef.current }),
+      });
       session = await sessionResponse.json().catch(() => ({}));
+
+      if (!sessionResponse.ok || !session.url) {
+        sessionResponse = await fetch(`${API_BASE}/at-motors/realtime-session`);
+        session = await sessionResponse.json().catch(() => ({}));
+      }
+
       if (!sessionResponse.ok || !session.url) throw new Error(session.error || 'Realtime session is not configured');
       realtimeSessionRef.current = session;
     }
 
     return new Promise((resolve, reject) => {
-      const socket = new WebSocket(session.url);
+      const socket = new WebSocket(toWebSocketUrl(session.url));
       realtimeRef.current = socket;
       closeRealtimeOnDoneRef.current = closeOnDone;
 
@@ -645,7 +666,11 @@ function App() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      fetch(`${API_BASE}/at-motors/realtime-session`)
+      fetch(`${API_BASE}/at-motors/voice-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: sessionIdRef.current }),
+      })
         .then((response) => response.ok ? response.json() : null)
         .then((session) => {
           if (session?.url) realtimeSessionRef.current = session;

@@ -130,6 +130,45 @@ app.post('/api/at-motors/agent-turn', async (req, res) => {
   }
 });
 
+app.post('/api/at-motors/chat', async (req, res) => {
+  const traceId = crypto.randomUUID();
+  res.setHeader('x-atm-trace-id', traceId);
+  try {
+    const result = await runAgentTurn(req.body, { generateReply });
+    res.json({
+      reply: result.reply,
+      source: 'agent-graph',
+      documentsUsed: [],
+      sources: result.comparison?.sources || [],
+      uiEvents: result.uiEvents,
+      traceId,
+    });
+  } catch (error) {
+    logger.error({ traceId, error: error.message }, 'chat failed');
+    res.status(500).json({ error: 'Could not answer with the AT MOTORS concierge.', traceId });
+  }
+});
+
+app.post('/api/at-motors/comparison', async (req, res) => {
+  const traceId = crypto.randomUUID();
+  res.setHeader('x-atm-trace-id', traceId);
+  try {
+    const result = await runAgentTurn(req.body, { generateReply });
+    if (!result.comparison) {
+      return res.status(400).json({ error: 'Comparison requests must stay automotive.', traceId });
+    }
+    return res.json({
+      comparison: result.comparison,
+      documentsUsed: [],
+      sourceCount: result.comparison.sources?.length || 0,
+      traceId,
+    });
+  } catch (error) {
+    logger.error({ traceId, error: error.message }, 'comparison failed');
+    return res.status(500).json({ error: 'Could not build the AT MOTORS comparison.', traceId });
+  }
+});
+
 app.post('/api/at-motors/chat/stream', async (req, res) => {
   const traceId = crypto.randomUUID();
   res.setHeader('Content-Type', 'text/event-stream');

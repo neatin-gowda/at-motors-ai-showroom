@@ -1,4 +1,4 @@
-# AT MOTORS Production V1 Plans
+# AT MOTORS Production V1 Plan
 
 This migration keeps the working showroom experience alive while moving the platform toward a production multi-agent architecture.
 
