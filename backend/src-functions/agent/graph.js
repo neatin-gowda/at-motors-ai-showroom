@@ -79,6 +79,32 @@ function resolveVehicles(message) {
   return unique.slice(0, 2);
 }
 
+function resolveReplacementVehicles(message, currentComparison) {
+  const currentVehicles = Array.isArray(currentComparison?.vehicles) ? currentComparison.vehicles.slice(0, 2) : [];
+  if (currentVehicles.length < 2) return null;
+
+  const text = String(message || '').toLowerCase();
+  const match = text.match(/\b(?:replace|change|switch|remove)\s+(.+?)\s+(?:with|to|and make it|make it)\s+(.+?)(?:[?.!]|$)/i);
+  if (!match) return null;
+
+  const oldText = match[1] || '';
+  const newText = match[2] || '';
+  const oldVehicle = resolveVehicles(oldText)[0];
+  const newVehicle = resolveVehicles(newText)[0];
+  if (!newVehicle) return null;
+
+  const oldId = oldVehicle?.id;
+  const oldLower = oldText.toLowerCase();
+  const replaceIndex = currentVehicles.findIndex((vehicle) => (
+    (oldId && vehicle.id === oldId) ||
+    oldLower.includes(String(vehicle.brand || '').toLowerCase()) ||
+    oldLower.includes(String(vehicle.model || '').toLowerCase())
+  ));
+  if (replaceIndex < 0) return null;
+
+  return currentVehicles.map((vehicle, index) => (index === replaceIndex ? newVehicle : vehicle));
+}
+
 function classifyIntent(message, vehicles) {
   if (isFarewell(message)) return 'session_end';
   if (!isAutomotiveTopic(message)) return 'out_of_scope';
@@ -216,10 +242,11 @@ async function runAgentTurn(input, options = {}) {
   const graphStartedAt = Date.now();
   const toolsUsed = [];
 
-  const vehicles = resolveVehicles(message);
+  const replacementVehicles = resolveReplacementVehicles(message, input.currentComparison);
+  const vehicles = replacementVehicles || resolveVehicles(message);
   toolsUsed.push({ name: 'vehicle_resolver', resultCount: vehicles.length });
 
-  const intent = classifyIntent(message, vehicles);
+  const intent = replacementVehicles ? 'vehicle_comparison' : classifyIntent(message, vehicles);
   toolsUsed.push({ name: 'intent_router', intent });
 
   const comparison = ['vehicle_profile', 'vehicle_comparison'].includes(intent)

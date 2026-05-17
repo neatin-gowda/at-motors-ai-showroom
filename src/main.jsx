@@ -4,7 +4,9 @@ import './styles.css';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 const REALTIME_SAMPLE_RATE = 24000;
-const REALTIME_INSTRUCTIONS = 'You are AT MOTORS luxury automotive AI concierge for Ford, Lincoln, Jaguar, Land Rover, Maserati, Ferrari, VinFast, Deepal, and Ford Trucks. Only answer automotive, car comparison, ownership, finance, test-drive, showroom, and AT MOTORS questions. If asked anything outside automotive, politely refuse and redirect to cars. Be concise, premium, and helpful. If comparing cars, focus on performance, comfort, ownership fit, price tier, and next viewing step. Present regional prices in UAE dirhams by default, never USD. Do not mention setup, Bing, grounding, environment variables, Azure, or technical implementation. Use English only.';
+const REALTIME_VOICE = 'alloy';
+const VOICE_IDLE_TIMEOUT_MS = 30000;
+const REALTIME_INSTRUCTIONS = 'You are AT MOTORS luxury automotive AI concierge for Ford, Lincoln, Jaguar, Land Rover, Maserati, Ferrari, VinFast, Deepal, and Ford Trucks. Use one consistent voice identity: crisp, calm, short, clear, and premium. Only answer automotive, car comparison, ownership, finance, test-drive, showroom, and AT MOTORS questions. If asked anything outside automotive, politely refuse and redirect to cars. If comparing cars, focus on performance, comfort, ownership fit, price tier, and next viewing step. Present regional prices in UAE dirhams by default, never USD. Do not mention setup, Bing, grounding, environment variables, Azure, or technical implementation. Default to English; if the customer switches language, respond in that language while staying concise and automotive-only.';
 
 const showroomScenes = [
   {
@@ -121,6 +123,7 @@ function Icon({ name }) {
   const paths = {
     chat: <><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z" /><path d="M8 9h8" /><path d="M8 13h5" /></>,
     mic: <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />,
+    micOff: <><path d="M12 2a3 3 0 0 0-3 3v3" /><path d="M15 9.3V5a3 3 0 0 0-5.1-2.1" /><path d="M19 10v2a7 7 0 0 1-11.9 5" /><path d="M5 10v2a7 7 0 0 0 7 7" /><path d="M12 19v3" /><path d="M8 22h8" /><path d="m3 3 18 18" /></>,
     end: <path d="M21 15.4c-2.2-1.2-5.1-1.9-9-1.9s-6.8.7-9 1.9l2.6 4.2 3.3-1.7v-2.2c.9-.1 1.9-.2 3.1-.2s2.2.1 3.1.2v2.2l3.3 1.7 2.6-4.2Z" />,
     mute: <><path d="M11 5 6 9H3v6h3l5 4V5Z" /><path d="m23 9-6 6" /><path d="m17 9 6 6" /></>,
     volume: <><path d="M11 5 6 9H3v6h3l5 4V5Z" /><path d="M15.5 8.5a5 5 0 0 1 0 7" /><path d="M18.5 5.5a9 9 0 0 1 0 13" /></>,
@@ -286,6 +289,7 @@ function App() {
   const chatGlowRef = useRef(null);
   const stageRef = useRef(null);
   const sessionIdRef = useRef(`at-motors-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  const idleTimerRef = useRef(null);
   const backgroundImage = comparison?.vehicles?.[0]?.imageUrl || showroomScenes[activeCar].img;
   const hasTranscript = Boolean(conversation.length || recognized || streamText);
 
@@ -351,11 +355,28 @@ function App() {
         message,
         sessionId: sessionIdRef.current,
         history: conversation.slice(-6),
+        currentComparison: comparisonRef.current,
       }),
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || 'Agent turn failed');
     return data;
+  };
+
+  const clearVoiceIdleTimer = () => {
+    if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
+    idleTimerRef.current = null;
+  };
+
+  const scheduleVoiceIdleTimer = (reason = 'silence') => {
+    clearVoiceIdleTimer();
+    if (!realtimeRef.current) return;
+    idleTimerRef.current = window.setTimeout(() => {
+      setStreamText(reason === 'muted'
+        ? 'Session closed after microphone mute timeout.'
+        : 'Session closed after a quiet moment.');
+      endSession({ preserveTranscript: true });
+    }, VOICE_IDLE_TIMEOUT_MS);
   };
 
   const stopPlayback = () => {
@@ -471,6 +492,7 @@ function App() {
   const handleUserTranscript = (transcript) => {
     const value = cleanDisplayText(transcript);
     if (!value || value === lastUserTranscriptRef.current) return;
+    scheduleVoiceIdleTimer('silence');
     lastUserTranscriptRef.current = value;
     setRecognized(value);
     setConversation((items) => [...items, { role: 'user', text: value }].slice(-4));
@@ -494,6 +516,7 @@ function App() {
     const type = data.type || '';
 
     if (type === 'response.created') {
+      clearVoiceIdleTimer();
       modelRespondingRef.current = true;
       responseTextRef.current = '';
       responseHasAudioTranscriptRef.current = false;
@@ -502,6 +525,7 @@ function App() {
     }
 
     if (type === 'input_audio_buffer.speech_started') {
+      clearVoiceIdleTimer();
       if (mutedRef.current) {
         if (realtimeRef.current?.readyState === WebSocket.OPEN) {
           try {
@@ -531,6 +555,7 @@ function App() {
     if (type === 'input_audio_buffer.speech_stopped' || type === 'input_audio_buffer.committed') {
       if (mutedRef.current) return;
       setMode('responding');
+      scheduleVoiceIdleTimer('silence');
     }
 
     if (
@@ -548,10 +573,12 @@ function App() {
       if (mutedRef.current) return;
       userDraftTranscriptRef.current = cleanDisplayText(`${userDraftTranscriptRef.current}${data.delta || ''}`, { trim: false });
       setRecognized(userDraftTranscriptRef.current);
+      scheduleVoiceIdleTimer('silence');
       requestComparisonFromText(userDraftTranscriptRef.current);
     }
 
     if (type === 'response.audio.delta' || type === 'response.output_audio.delta') {
+      clearVoiceIdleTimer();
       void playRealtimeAudio(data.delta);
       setMode('responding');
     }
@@ -591,6 +618,7 @@ function App() {
         }, 600);
       } else {
         setMode('listening');
+        scheduleVoiceIdleTimer('silence');
       }
     }
 
@@ -606,7 +634,7 @@ function App() {
       session: {
         instructions: REALTIME_INSTRUCTIONS,
         modalities: ['audio', 'text'],
-        voice: 'alloy',
+        voice: REALTIME_VOICE,
         input_audio_format: 'pcm16',
         output_audio_format: 'pcm16',
         input_audio_transcription: { model: 'whisper-1' },
@@ -752,6 +780,7 @@ function App() {
         }
       }
       setStreamText((text) => text || 'Microphone muted. Tap Unmute to resume listening.');
+      scheduleVoiceIdleTimer('muted');
       return;
     }
 
@@ -760,6 +789,7 @@ function App() {
         await startMicStreaming(realtimeRef.current);
         setMode('listening');
         setStreamText('');
+        scheduleVoiceIdleTimer('silence');
       } catch {
         setStreamText('Could not resume microphone access. Check browser microphone permission.');
       }
@@ -772,7 +802,7 @@ function App() {
     setStreamText(vehicle.detail || `Live source model from ${vehicle.brand}.`);
     setConversation((items) => [...items, { role: 'user', text: `Show ${text}` }].slice(-4));
     setMode('responding');
-    requestComparisonFromText(vehicle.comparePrompt || `Compare ${text} with another AT MOTORS model`, { immediate: true });
+    requestComparisonFromText(`Show ${text}`, { immediate: true });
   };
 
   const downloadComparisonReport = () => {
@@ -853,6 +883,7 @@ function App() {
       response: {
         modalities: ['audio', 'text'],
         instructions: REALTIME_INSTRUCTIONS,
+        voice: REALTIME_VOICE,
       },
     }));
   };
@@ -907,6 +938,7 @@ function App() {
       await startMicStreaming(socket);
       setMode('listening');
       setStreamText('');
+      scheduleVoiceIdleTimer('silence');
     } catch {
       stopMicStreaming();
       setStreamText('Realtime voice is unavailable right now. Open chat for text concierge support.');
@@ -916,6 +948,7 @@ function App() {
 
   const endSession = ({ preserveTranscript = false } = {}) => {
     realtimeRef.current?.close();
+    clearVoiceIdleTimer();
     window.clearTimeout(comparisonDebounceRef.current);
     window.speechSynthesis?.cancel();
     stopMicStreaming();
@@ -936,7 +969,7 @@ function App() {
       <div className="kenBurns" style={{ backgroundImage: `url(${backgroundImage})` }} />
       <div className="shade" />
       <header className="brand">
-        <span>AT</span>
+        <span className="brandMark">AT</span>
         <strong>MOTORS</strong>
       </header>
 
@@ -950,7 +983,7 @@ function App() {
           </button>
           <div className={`transcript ${hasTranscript ? 'isVisible' : ''}`}>
             <div className="chatGlow" ref={chatGlowRef}>
-              {conversation.slice(comparison ? -1 : -2).map((item, index) => (
+              {conversation.slice(-4).map((item, index) => (
                 <p className={`chatLine ${item.role}`} key={`${item.role}-${index}-${item.text.slice(0, 12)}`}>{item.text}</p>
               ))}
               {recognized && <p className="recognized">{recognized}</p>}
@@ -983,10 +1016,11 @@ function App() {
       <footer className="liveFooter">
         <div className="liveDot"><Icon name="live" /> Live</div>
         <button className={muted ? 'isMuted' : ''} onClick={toggleMute} aria-pressed={muted} aria-label={muted ? 'Unmute microphone' : 'Mute microphone'}>
-          <Icon name={muted ? 'mute' : 'volume'} /> {muted ? 'Unmute' : 'Mute Mic'}
+          <Icon name={muted ? 'micOff' : 'mic'} /> {muted ? 'Unmute Mic' : 'Mute Mic'}
         </button>
         <button className="endButton" onClick={() => endSession()}><Icon name="end" /> End</button>
       </footer>
+      <div className="appFooter">AT MOTORS concierge | Private viewing | UAE showroom intelligence</div>
     </main>
   );
 }
