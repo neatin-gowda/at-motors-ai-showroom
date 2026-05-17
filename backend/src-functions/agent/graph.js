@@ -18,6 +18,7 @@ const FAREWELL_PATTERNS = [
 
 const COMPARISON_PATTERN = /\b(compare|comparison|versus|vs\.?|against|between|table|tabular|difference|better|recommend|choose|which one)\b/i;
 const PROFILE_PATTERN = /\b(show|check|open|view|display|details|profile|price|specs|specification|tell me about|what about|look|looks|looking|see|overview|features|interior|exterior)\b/i;
+const SINGLE_VIEW_PATTERN = /\b(single|one model|one single|only one|just one|profile only|not comparison|no comparison|stop comparing|why are you showing two)\b/i;
 
 function cleanText(value, max = 2000) {
   return String(value || '').replace(/\s+/g, ' ').trim().slice(0, max);
@@ -107,9 +108,11 @@ function resolveReplacementVehicles(message, currentComparison) {
 
 function classifyIntent(message, vehicles) {
   if (isFarewell(message)) return 'session_end';
-  if (!isAutomotiveTopic(message)) return 'out_of_scope';
-  if (COMPARISON_PATTERN.test(message) || vehicles.length > 1) return 'vehicle_comparison';
+  if (!isAutomotiveTopic(message) && !vehicles.length) return 'out_of_scope';
+  if (SINGLE_VIEW_PATTERN.test(message)) return 'vehicle_profile';
+  if (COMPARISON_PATTERN.test(message) && vehicles.length > 1) return 'vehicle_comparison';
   if (PROFILE_PATTERN.test(message) || vehicles.length === 1) return 'vehicle_profile';
+  if (vehicles.length > 1) return 'vehicle_profile';
   if (/\b(insurance|insured|premium|comprehensive|third party)\b/i.test(message)) return 'insurance';
   if (/\b(service|maintenance|warranty|after sales|aftersales|repair|interval)\b/i.test(message)) return 'after_sales';
   if (/\b(heritage|history|brand story|legacy|racing|motorsport)\b/i.test(message)) return 'brand';
@@ -243,7 +246,10 @@ async function runAgentTurn(input, options = {}) {
   const toolsUsed = [];
 
   const replacementVehicles = resolveReplacementVehicles(message, input.currentComparison);
-  const vehicles = replacementVehicles || resolveVehicles(message);
+  let vehicles = replacementVehicles || resolveVehicles(message);
+  if (!replacementVehicles && SINGLE_VIEW_PATTERN.test(message) && !vehicles.length && Array.isArray(input.currentComparison?.vehicles)) {
+    vehicles = input.currentComparison.vehicles.slice(0, 1);
+  }
   toolsUsed.push({ name: 'vehicle_resolver', resultCount: vehicles.length });
 
   const intent = replacementVehicles ? 'vehicle_comparison' : classifyIntent(message, vehicles);

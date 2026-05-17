@@ -47,36 +47,47 @@ svg { width: 18px; height: 18px; }
   background-size: cover;
   filter: saturate(1.05) contrast(1.08);
   inset: -4%;
-  position: absolute;
+  min-height: 112vh;
+  position: fixed;
   z-index: -3;
 }
 
 .shade {
   background:
-    radial-gradient(circle at 50% 42%, rgba(233, 119, 50, .12), transparent 30%),
-    linear-gradient(90deg, rgba(2, 8, 20, .9), rgba(2, 8, 20, .35), rgba(2, 8, 20, .9)),
-    linear-gradient(0deg, rgba(2, 8, 20, .96), rgba(2, 8, 20, .12), rgba(2, 8, 20, .72));
+    radial-gradient(circle at 52% 36%, rgba(233, 119, 50, .13), transparent 28%),
+    linear-gradient(90deg, rgba(30, 38, 56, .94), rgba(30, 38, 56, .28), rgba(3, 8, 20, .92)),
+    linear-gradient(0deg, rgba(248, 244, 237, .08), rgba(2, 8, 20, .08) 38%, rgba(2, 8, 20, .76));
   inset: 0;
-  position: absolute;
+  position: fixed;
   z-index: -2;
 }
 
 .brand {
   align-items: center;
-  background: rgba(248, 244, 237, .08);
-  border: 1px solid rgba(237, 228, 211, .16);
-  border-radius: 999px;
-  backdrop-filter: blur(18px);
-  box-shadow: 0 18px 54px rgba(0,0,0,.18);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.025)),
+    rgba(30, 38, 56, .72);
+  border-bottom: 1px solid rgba(237, 228, 211, .16);
+  backdrop-filter: blur(22px) saturate(1.25);
+  box-shadow: 0 16px 54px rgba(0,0,0,.2);
   display: flex;
+  justify-content: space-between;
   gap: 12px;
-  left: clamp(22px, 4vw, 58px);
+  left: 0;
   letter-spacing: .18em;
-  padding: 8px 14px 8px 8px;
+  min-height: 72px;
+  padding: 0 clamp(18px, 4vw, 58px);
   position: fixed;
-  top: 20px;
+  right: 0;
+  top: 0;
   transition: opacity .28s var(--ease), transform .28s var(--ease);
   z-index: 10;
+}
+
+.brandLogo {
+  align-items: center;
+  display: inline-flex;
+  gap: 12px;
 }
 
 .brand strong {
@@ -85,6 +96,21 @@ svg { width: 18px; height: 18px; }
 }
 
 .brand strong { color: var(--beige); font-weight: 900; }
+
+.brand nav {
+  align-items: center;
+  color: rgba(248,244,237,.78);
+  display: flex;
+  gap: clamp(18px, 3vw, 42px);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .24em;
+  text-transform: uppercase;
+}
+
+.brand nav span:first-child {
+  color: var(--ember);
+}
 
 .brandMark {
   align-items: center;
@@ -107,7 +133,7 @@ svg { width: 18px; height: 18px; }
   gap: 18px;
   min-height: 100%;
   justify-items: center;
-  padding: 88px clamp(18px, 4vw, 60px) 190px;
+  padding: 112px clamp(18px, 4vw, 60px) 180px;
   position: relative;
 }
 
@@ -117,7 +143,7 @@ svg { width: 18px; height: 18px; }
   gap: clamp(14px, 1.6vh, 20px);
   justify-content: flex-start;
   min-height: auto;
-  padding-top: 100px;
+  padding-top: 96px;
   padding-bottom: 180px;
 }
 
@@ -128,9 +154,9 @@ svg { width: 18px; height: 18px; }
 
 .heroCopy {
   animation: fadeUp .8s var(--ease) both;
-  bottom: 130px;
+  bottom: clamp(104px, 12vh, 150px);
   left: clamp(22px, 4vw, 58px);
-  max-width: 700px;
+  max-width: 520px;
   position: absolute;
 }
 
@@ -144,7 +170,7 @@ svg { width: 18px; height: 18px; }
 }
 
 .heroCopy h1 {
-  font-size: clamp(38px, 6vw, 88px);
+  font-size: clamp(46px, 7vw, 112px);
   font-family: "Cormorant Garamond", serif;
   letter-spacing: 0;
   line-height: .94;
@@ -324,26 +350,27 @@ svg { width: 18px; height: 18px; }
 }
 
 .holoCar em {
-  background: rgba(217,198,163,.14);
-  border: 1px solid rgba(217,198,163,.18);
+  background: rgba(248,244,237,.92);
+  border: 1px solid rgba(248,244,237,.38);
   border-radius: 999px;
-  color: var(--beige);
+  color: var(--navy);
   font-size: 9px;
   font-style: normal;
   font-weight: 900;
   letter-spacing: .08em;
-  opacity: 0;
+  opacity: .92;
   padding: 5px 8px;
   text-transform: uppercase;
   top: 10px;
-  transform: translateY(-4px);
+  text-shadow: none;
+  transform: translateY(0);
   transition: opacity .24s var(--ease), transform .24s var(--ease);
 }
 
 .holoCar:hover em,
 .holoCar:focus-visible em {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(-2px);
 }
 
 .holoLoading {
@@ -439,15 +466,15 @@ svg { width: 18px; height: 18px; }
   backdrop-filter: blur(22px);
   box-shadow: 0 24px 90px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.08);
   color: var(--text);
-  max-width: min(900px, calc(100vw - 36px));
-  height: clamp(112px, 17vh, 170px);
+  max-width: min(960px, calc(100vw - 36px));
+  height: auto;
   min-height: 0;
   opacity: 0;
   padding: 14px;
   pointer-events: none;
   transform: translateY(10px);
   transition: opacity .35s var(--ease), transform .35s var(--ease);
-  width: min(840px, calc(100vw - 36px));
+  width: min(920px, calc(100vw - 36px));
 }
 
 .transcript:not(.isVisible) {
@@ -462,10 +489,10 @@ svg { width: 18px; height: 18px; }
 .has-comparison .transcript,
 .mode-comparison .transcript {
   border-radius: 20px;
-  height: 132px;
-  max-height: 132px;
+  height: auto;
+  max-height: 138px;
   max-width: min(960px, calc(100vw - 36px));
-  min-height: 132px;
+  min-height: 0;
   padding: 10px 12px;
   width: min(920px, calc(100vw - 36px));
 }
@@ -486,11 +513,11 @@ svg { width: 18px; height: 18px; }
 }
 
 .chatGlow {
-  align-content: end;
+  align-content: center;
   border-radius: 18px;
   display: grid;
   gap: 10px;
-  height: 100%;
+  max-height: 136px;
   max-height: none;
   overflow-y: auto;
   padding: 8px;
@@ -504,11 +531,11 @@ svg { width: 18px; height: 18px; }
 
 .has-comparison .chatGlow,
 .mode-comparison .chatGlow {
-  align-content: start;
+  align-content: center;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  justify-content: flex-start;
+  justify-content: center;
   overflow-x: hidden;
   overflow-y: auto;
   padding: 6px;
@@ -576,7 +603,7 @@ svg { width: 18px; height: 18px; }
   letter-spacing: .08em;
   padding: 8px 12px;
   text-transform: uppercase;
-  max-width: 82%;
+  max-width: 92%;
   overflow-wrap: anywhere;
 }
 
@@ -597,7 +624,7 @@ svg { width: 18px; height: 18px; }
   align-self: center;
   color: rgba(255,255,255,.86);
   font-size: clamp(14px, 1.25vw, 18px);
-  max-width: 760px;
+  max-width: 840px;
   overflow-wrap: anywhere;
   text-align: center;
   text-shadow: 0 0 22px rgba(233,119,50,.32);
@@ -605,12 +632,11 @@ svg { width: 18px; height: 18px; }
 
 .has-comparison .stream,
 .mode-comparison .stream {
-  display: -webkit-box;
-  max-height: 5.28em;
-  overflow: hidden;
+  display: block;
+  max-height: 4.8em;
+  overflow: auto;
   text-align: left;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
+  scrollbar-width: thin;
 }
 
 .compareStage {
@@ -955,6 +981,42 @@ svg { width: 18px; height: 18px; }
   transform: translate(-50%, 0);
 }
 
+.chatHistoryPanel {
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.055), rgba(255,255,255,.015)),
+    rgba(30, 38, 56, .78);
+  border: 1px solid rgba(237, 228, 211, .15);
+  border-radius: 22px;
+  backdrop-filter: blur(22px) saturate(1.2);
+  bottom: 88px;
+  box-shadow: 0 22px 68px rgba(0,0,0,.32);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  left: 50%;
+  max-height: min(36vh, 320px);
+  max-width: min(760px, calc(100vw - 520px));
+  opacity: 0;
+  overflow: auto;
+  padding: 14px;
+  pointer-events: none;
+  position: fixed;
+  transform: translate(-50%, 16px);
+  transition: opacity .32s var(--ease), transform .32s var(--ease);
+  width: 720px;
+  z-index: 12;
+}
+
+.chatHistoryPanel.isOpen {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+}
+
+.chatHistoryPanel .chatLine {
+  max-width: 88%;
+}
+
 .askBar input {
   background: transparent;
   border: 0;
@@ -1078,7 +1140,7 @@ svg { width: 18px; height: 18px; }
 @media (max-width: 900px) {
   body { overflow: auto; }
   .cockpit { min-height: 100dvh; overflow-y: auto; }
-  .stage { min-height: 100dvh; height: auto; padding-bottom: 180px; }
+  .stage { min-height: 100dvh; height: auto; padding-top: 96px; padding-bottom: 180px; }
   .has-comparison .stage,
   .mode-comparison .stage {
     padding-top: 72px;
@@ -1102,7 +1164,29 @@ svg { width: 18px; height: 18px; }
     height: 62px;
     width: 146px;
   }
-  .holoCar em { display: none; }
+  .brand {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    justify-content: center;
+    min-height: 92px;
+  }
+  .brand nav {
+    gap: 14px;
+    max-width: 100%;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    white-space: nowrap;
+  }
+  .brand nav::-webkit-scrollbar { display: none; }
+  .holoCar em {
+    font-size: 8px;
+    max-width: calc(100% - 18px);
+    overflow: hidden;
+    padding: 4px 7px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .mode-comparison .orb,
   .has-comparison .orb { --size: clamp(86px, 24vw, 118px); }
   .has-comparison .transcript,
@@ -1126,6 +1210,12 @@ svg { width: 18px; height: 18px; }
   }
   .sourceStrip { border-radius: 18px; bottom: auto; flex-wrap: wrap; position: relative; }
   .askBar { bottom: 88px; max-width: calc(100vw - 36px); width: calc(100vw - 36px); }
+  .chatHistoryPanel {
+    bottom: 150px;
+    max-height: 32vh;
+    max-width: calc(100vw - 36px);
+    width: calc(100vw - 36px);
+  }
   .chatLauncher { bottom: 24px; left: auto; right: 18px; }
   .liveFooter { bottom: 24px; left: 18px; right: auto; }
   .heroCopy { bottom: 180px; }

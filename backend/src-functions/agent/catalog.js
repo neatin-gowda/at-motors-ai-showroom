@@ -114,13 +114,12 @@ const SOURCE_REGISTRY = [
   { brand: 'Ferrari', url: 'https://www.altayermotors.com/ferrari/' },
 ];
 
-const SHOWROOM_MODELS = VEHICLE_CATALOG.map((vehicle, index, list) => ({
+const SHOWROOM_MODELS = VEHICLE_CATALOG.map((vehicle) => ({
   brand: vehicle.brand,
   model: vehicle.model,
   type: vehicle.type,
   detail: vehicle.highlight,
   imageUrl: vehicle.imageUrl,
-  comparePrompt: `Compare ${vehicle.name} and ${list[(index + 1) % list.length].name}`,
 }));
 
 module.exports = {

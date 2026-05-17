@@ -6,7 +6,7 @@ const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 const REALTIME_SAMPLE_RATE = 24000;
 const REALTIME_VOICE = 'alloy';
 const VOICE_IDLE_TIMEOUT_MS = 30000;
-const REALTIME_INSTRUCTIONS = 'You are AT MOTORS luxury automotive AI concierge for Ford, Lincoln, Jaguar, Land Rover, Maserati, Ferrari, VinFast, Deepal, and Ford Trucks. Use one consistent voice identity: crisp, calm, short, clear, and premium. Only answer automotive, car comparison, ownership, finance, test-drive, showroom, and AT MOTORS questions. If asked anything outside automotive, politely refuse and redirect to cars. If comparing cars, focus on performance, comfort, ownership fit, price tier, and next viewing step. Present regional prices in UAE dirhams by default, never USD. Do not mention setup, Bing, grounding, environment variables, Azure, or technical implementation. Default to English; if the customer switches language, respond in that language while staying concise and automotive-only.';
+const REALTIME_INSTRUCTIONS = 'You are AT MOTORS luxury automotive AI concierge for Ford, Lincoln, Jaguar, Land Rover, Maserati, Ferrari, VinFast, Deepal, and Ford Trucks. Use one consistent voice identity: crisp, calm, short, clear, and premium. Only answer automotive, car comparison, ownership, finance, test-drive, showroom, and AT MOTORS questions. If asked anything outside automotive, politely refuse and redirect to cars. For vehicle profiles and comparisons, do not invent long specifications from memory; speak a short showroom handoff while the visual dossier renders the exact table. Focus on performance, comfort, ownership fit, price tier, and next viewing step. Present regional prices in UAE dirhams by default, never USD. Do not mention setup, Bing, grounding, environment variables, Azure, or technical implementation. Default to English; if the customer switches language, respond in that language while staying concise and automotive-only.';
 
 const showroomScenes = [
   {
@@ -29,12 +29,12 @@ const showroomScenes = [
 const FALLBACK_CAR_IMAGE = 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=90&w=1600';
 
 const LOCAL_SHOWROOM_MODELS = [
-  ['Ford', 'Mustang GT', 'Performance coupe', 'V8 theatre with daily usability and strong showroom appeal.', 'https://images.unsplash.com/photo-1561535743-c82c241502d5?auto=format&fit=crop&q=90&w=1600', 'Compare Ford Mustang GT and Maserati MC20'],
-  ['Jaguar', 'F-Pace', 'Luxury performance SUV', 'British performance SUV with a premium road presence.', 'https://images.unsplash.com/photo-1619767886558-efdc259cde1a?auto=format&fit=crop&q=90&w=1600', 'Compare Jaguar F-Pace and Land Rover Defender'],
-  ['Land Rover', 'Defender', 'Luxury 4x4', 'Iconic capability with premium all-terrain character.', 'https://images.unsplash.com/photo-1609521263047-f8f205293f24?auto=format&fit=crop&q=90&w=1600', 'Compare Land Rover Defender and Ford Mustang GT'],
-  ['Maserati', 'MC20', 'Italian supercar', 'Low-slung Italian performance with exotic showroom theatre.', 'https://images.unsplash.com/photo-1756548843479-3783100b3447?auto=format&fit=crop&q=90&w=1600', 'Compare Maserati MC20 and Ferrari 296 GTB'],
-  ['Ferrari', '296 GTB', 'Hybrid supercar', 'Compact Ferrari hybrid performance with intense emotional pull.', 'https://images.unsplash.com/photo-1556516731-779d3492975b?auto=format&fit=crop&q=90&w=1600', 'Compare Ferrari 296 GTB and Maserati MC20'],
-].map(([brand, model, type, detail, imageUrl, comparePrompt]) => ({ brand, model, type, detail, imageUrl, comparePrompt }));
+  ['Ford', 'Mustang GT', 'Performance coupe', 'V8 theatre with daily usability and strong showroom appeal.', 'https://images.unsplash.com/photo-1561535743-c82c241502d5?auto=format&fit=crop&q=90&w=1600'],
+  ['Jaguar', 'F-Pace', 'Luxury performance SUV', 'British performance SUV with a premium road presence.', 'https://images.unsplash.com/photo-1619767886558-efdc259cde1a?auto=format&fit=crop&q=90&w=1600'],
+  ['Land Rover', 'Defender', 'Luxury 4x4', 'Iconic capability with premium all-terrain character.', 'https://images.unsplash.com/photo-1609521263047-f8f205293f24?auto=format&fit=crop&q=90&w=1600'],
+  ['Maserati', 'MC20', 'Italian supercar', 'Low-slung Italian performance with exotic showroom theatre.', 'https://images.unsplash.com/photo-1756548843479-3783100b3447?auto=format&fit=crop&q=90&w=1600'],
+  ['Ferrari', '296 GTB', 'Hybrid supercar', 'Compact Ferrari hybrid performance with intense emotional pull.', 'https://images.unsplash.com/photo-1556516731-779d3492975b?auto=format&fit=crop&q=90&w=1600'],
+].map(([brand, model, type, detail, imageUrl]) => ({ brand, model, type, detail, imageUrl }));
 
 const automotiveTerms = [
   'car', 'cars', 'auto', 'automotive', 'vehicle', 'vehicles', 'motor', 'motors',
@@ -291,7 +291,7 @@ function App() {
   const sessionIdRef = useRef(`at-motors-${Date.now()}-${Math.random().toString(16).slice(2)}`);
   const idleTimerRef = useRef(null);
   const backgroundImage = comparison?.vehicles?.[0]?.imageUrl || showroomScenes[activeCar].img;
-  const hasTranscript = Boolean(conversation.length || recognized || streamText);
+  const hasTranscript = Boolean(recognized || streamText);
 
   useEffect(() => {
     const timer = window.setInterval(() => setActiveCar((index) => (index + 1) % showroomScenes.length), 7000);
@@ -748,7 +748,13 @@ function App() {
   const requestComparisonFromText = (message, options = {}) => {
     const { immediate = false } = options;
     const value = cleanDisplayText(message);
-    const shouldShowProfile = isVehicleProfileRequest(value);
+    const lowerValue = value.toLowerCase();
+    const mentionsShowroomVehicle = railVehicles.some((vehicle) => (
+      lowerValue.includes(String(vehicle.brand || '').toLowerCase()) ||
+      lowerValue.includes(String(vehicle.model || '').toLowerCase()) ||
+      lowerValue.includes(`${String(vehicle.brand || '').toLowerCase()} ${String(vehicle.model || '').toLowerCase()}`)
+    ));
+    const shouldShowProfile = isVehicleProfileRequest(value) || (!isComparisonRequest(value) && mentionsShowroomVehicle);
     if (!value || (!isComparisonRequest(value) && !shouldShowProfile) || (!isAutomotiveTopic(value) && !comparisonRef.current)) return false;
     const key = value.toLowerCase();
     const run = () => {
@@ -784,15 +790,19 @@ function App() {
       return;
     }
 
+    setStreamText('');
+    setRecognized('');
+    clearVoiceIdleTimer();
     if (realtimeRef.current?.readyState === WebSocket.OPEN) {
       try {
         await startMicStreaming(realtimeRef.current);
         setMode('listening');
-        setStreamText('');
         scheduleVoiceIdleTimer('silence');
       } catch {
         setStreamText('Could not resume microphone access. Check browser microphone permission.');
       }
+    } else {
+      setMode(comparisonRef.current ? 'comparison' : 'background');
     }
   };
 
@@ -969,8 +979,15 @@ function App() {
       <div className="kenBurns" style={{ backgroundImage: `url(${backgroundImage})` }} />
       <div className="shade" />
       <header className="brand">
-        <span className="brandMark">AT</span>
-        <strong>MOTORS</strong>
+        <div className="brandLogo">
+          <span className="brandMark">AT</span>
+          <strong>MOTORS</strong>
+        </div>
+        <nav aria-label="AT Motors sections">
+          <span>Concierge</span>
+          <span>Voice</span>
+          <span>Private Viewing</span>
+        </nav>
       </header>
 
       <section className="stage" ref={stageRef}>
@@ -983,9 +1000,6 @@ function App() {
           </button>
           <div className={`transcript ${hasTranscript ? 'isVisible' : ''}`}>
             <div className="chatGlow" ref={chatGlowRef}>
-              {conversation.slice(-4).map((item, index) => (
-                <p className={`chatLine ${item.role}`} key={`${item.role}-${index}-${item.text.slice(0, 12)}`}>{item.text}</p>
-              ))}
               {recognized && <p className="recognized">{recognized}</p>}
               {streamText && <p className="stream">{streamText}</p>}
             </div>
@@ -998,8 +1012,8 @@ function App() {
 
         {mode === 'background' && !comparison && (
           <div className="heroCopy">
-            <p>Luxury automotive intelligence</p>
-            <h1>Curated automotive clarity.</h1>
+            <p>Luxury AI showroom</p>
+            <h1>Converge.</h1>
           </div>
         )}
       </section>
@@ -1012,6 +1026,12 @@ function App() {
         <input value={input} onChange={(event) => setInput(event.target.value)} placeholder="Chat: compare Ferrari SF90 and Deepal S07..." />
         <button type="submit">Ask</button>
       </form>
+      <div className={`chatHistoryPanel ${chatOpen ? 'isOpen' : ''}`} aria-live="polite">
+        {conversation.slice(-6).map((item, index) => (
+          <p className={`chatLine ${item.role}`} key={`${item.role}-${index}-${item.text.slice(0, 12)}`}>{item.text}</p>
+        ))}
+        {!conversation.length && <p className="chatLine assistant">Ask for a model profile, a side-by-side comparison, or a private viewing.</p>}
+      </div>
 
       <footer className="liveFooter">
         <div className="liveDot"><Icon name="live" /> Live</div>
@@ -1020,7 +1040,6 @@ function App() {
         </button>
         <button className="endButton" onClick={() => endSession()}><Icon name="end" /> End</button>
       </footer>
-      <div className="appFooter">AT MOTORS concierge | Private viewing | UAE showroom intelligence</div>
     </main>
   );
 }

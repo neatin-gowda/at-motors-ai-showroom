@@ -60,7 +60,6 @@ const SHOWROOM_MODELS = [
     type: 'Performance coupe',
     detail: 'V8 theatre with daily usability and strong showroom appeal.',
     imageUrl: 'https://images.unsplash.com/photo-1561535743-c82c241502d5?auto=format&fit=crop&q=90&w=1600',
-    comparePrompt: 'Compare Ford Mustang GT and Maserati MC20',
   },
   {
     brand: 'Jaguar',
@@ -68,7 +67,6 @@ const SHOWROOM_MODELS = [
     type: 'Luxury performance SUV',
     detail: 'British performance SUV with a premium road presence.',
     imageUrl: 'https://images.unsplash.com/photo-1619767886558-efdc259cde1a?auto=format&fit=crop&q=90&w=1600',
-    comparePrompt: 'Compare Jaguar F-Pace and Land Rover Defender',
   },
   {
     brand: 'Land Rover',
@@ -76,7 +74,6 @@ const SHOWROOM_MODELS = [
     type: 'Luxury 4x4',
     detail: 'Iconic capability with premium all-terrain character.',
     imageUrl: 'https://images.unsplash.com/photo-1609521263047-f8f205293f24?auto=format&fit=crop&q=90&w=1600',
-    comparePrompt: 'Compare Land Rover Defender and Ford Mustang GT',
   },
   {
     brand: 'Maserati',
@@ -84,7 +81,6 @@ const SHOWROOM_MODELS = [
     type: 'Italian supercar',
     detail: 'Low-slung Italian performance with exotic showroom theatre.',
     imageUrl: 'https://images.unsplash.com/photo-1756548843479-3783100b3447?auto=format&fit=crop&q=90&w=1600',
-    comparePrompt: 'Compare Maserati MC20 and Ferrari 296 GTB',
   },
   {
     brand: 'Ferrari',
@@ -92,7 +88,6 @@ const SHOWROOM_MODELS = [
     type: 'Hybrid supercar',
     detail: 'Compact Ferrari hybrid performance with intense emotional pull.',
     imageUrl: 'https://images.unsplash.com/photo-1556516731-779d3492975b?auto=format&fit=crop&q=90&w=1600',
-    comparePrompt: 'Compare Ferrari 296 GTB and Maserati MC20',
   },
 ];
 
@@ -549,7 +544,6 @@ function modelsFromBundle(bundle) {
       type: 'Public source model',
       detail: `Open ${bundle.name} source details for ${text}.`,
       imageUrl: images[index % Math.max(images.length, 1)]?.url || images[0]?.url || '',
-      comparePrompt: `Compare ${text} with another ${bundle.name} model`,
       sourceUrl: link.url || bundle.url,
     });
   });
@@ -561,7 +555,6 @@ function modelsFromBundle(bundle) {
       type: 'Brand source',
       detail: `Browse live ${bundle.name} source information.`,
       imageUrl: images[0]?.url || '',
-      comparePrompt: `Compare ${bundle.name} models`,
       sourceUrl: bundle.url,
     });
   }
