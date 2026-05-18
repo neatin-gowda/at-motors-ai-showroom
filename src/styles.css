@@ -45,7 +45,7 @@ svg { width: 18px; height: 18px; }
   animation: kenBurns 18s ease-in-out infinite alternate;
   background-position: center;
   background-size: cover;
-  filter: saturate(1.05) contrast(1.08);
+  filter: saturate(1.14) contrast(1.08) brightness(1.04);
   inset: -4%;
   min-height: 112vh;
   position: fixed;
@@ -54,9 +54,10 @@ svg { width: 18px; height: 18px; }
 
 .shade {
   background:
-    radial-gradient(circle at 52% 36%, rgba(233, 119, 50, .13), transparent 28%),
-    linear-gradient(90deg, rgba(30, 38, 56, .94), rgba(30, 38, 56, .28), rgba(3, 8, 20, .92)),
-    linear-gradient(0deg, rgba(248, 244, 237, .08), rgba(2, 8, 20, .08) 38%, rgba(2, 8, 20, .76));
+    radial-gradient(circle at 55% 38%, rgba(233, 119, 50, .14), transparent 30%),
+    radial-gradient(circle at 22% 72%, rgba(107, 114, 128, .16), transparent 36%),
+    linear-gradient(90deg, rgba(30, 38, 56, .76), rgba(30, 38, 56, .2) 48%, rgba(3, 8, 20, .78)),
+    linear-gradient(0deg, rgba(3, 8, 20, .78), rgba(2, 8, 20, .06) 44%, rgba(3, 8, 20, .42));
   inset: 0;
   position: fixed;
   z-index: -2;
@@ -99,27 +100,25 @@ svg { width: 18px; height: 18px; }
 
 .headerSupport {
   align-items: center;
-  background: rgba(4,10,22,.58);
-  border: 1px solid var(--line);
+  background: rgba(4,10,22,.26);
+  border: 1px solid rgba(237, 228, 211, .13);
   border-radius: 999px;
   backdrop-filter: blur(18px);
-  bottom: 24px;
-  box-shadow: 0 18px 50px rgba(0,0,0,.24);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
   color: rgba(248,244,237,.78);
   display: flex;
-  gap: clamp(18px, 3vw, 42px);
   font-size: 11px;
   font-weight: 750;
   letter-spacing: .24em;
-  left: 50%;
   margin: 0;
-  min-height: 44px;
-  padding: 0 18px;
-  position: fixed;
-  transform: translateX(-50%);
+  margin-left: auto;
+  min-height: 36px;
+  padding: 0 16px;
+  position: static;
+  transform: none;
   text-transform: uppercase;
   white-space: nowrap;
-  z-index: 15;
+  z-index: 1;
 }
 
 .headerSupport span {
@@ -147,7 +146,7 @@ svg { width: 18px; height: 18px; }
   gap: clamp(14px, 2vh, 24px);
   min-height: 100%;
   justify-items: center;
-  padding: 108px clamp(18px, 4vw, 60px) 190px;
+  padding: 108px clamp(18px, 4vw, 60px) 210px;
   position: relative;
 }
 
@@ -158,7 +157,7 @@ svg { width: 18px; height: 18px; }
   justify-content: flex-start;
   min-height: auto;
   padding-top: 92px;
-  padding-bottom: 190px;
+  padding-bottom: 230px;
 }
 
 .has-comparison .brand,
@@ -168,9 +167,9 @@ svg { width: 18px; height: 18px; }
 
 .heroCopy {
   animation: fadeUp .8s var(--ease) both;
-  bottom: clamp(128px, 15vh, 170px);
+  bottom: clamp(112px, 13vh, 150px);
   left: clamp(22px, 4vw, 58px);
-  max-width: min(660px, calc(100vw - 180px));
+  max-width: min(660px, calc(100vw - 260px));
   position: absolute;
   z-index: 3;
 }
@@ -970,7 +969,7 @@ svg { width: 18px; height: 18px; }
   border: 1px solid var(--line);
   border-radius: 50%;
   backdrop-filter: blur(18px);
-  bottom: 22px;
+  bottom: 24px;
   box-shadow: 0 18px 50px rgba(0,0,0,.28);
   color: rgba(255,255,255,.86);
   display: grid;
@@ -978,8 +977,7 @@ svg { width: 18px; height: 18px; }
   left: auto;
   place-items: center;
   position: fixed;
-  left: clamp(18px, 4vw, 58px);
-  right: auto;
+  right: calc(clamp(18px, 4vw, 58px) + 394px);
   top: auto;
   transition: transform .25s var(--ease), border-color .25s var(--ease), background .25s var(--ease);
   width: 54px;
@@ -999,17 +997,17 @@ svg { width: 18px; height: 18px; }
   border: 1px solid var(--line);
   border-radius: 999px;
   backdrop-filter: blur(20px);
-  bottom: 86px;
+  bottom: 94px;
   display: grid;
   gap: 10px;
   grid-template-columns: 1fr auto;
-  left: clamp(90px, 12vw, 180px);
+  left: clamp(72px, 10vw, 160px);
   max-width: none;
   padding: 8px;
   position: fixed;
   opacity: 0;
   pointer-events: none;
-  right: clamp(90px, 12vw, 180px);
+  right: clamp(72px, 10vw, 160px);
   transform: translateY(18px);
   transition: opacity .32s var(--ease), transform .32s var(--ease);
   width: auto;
@@ -1029,12 +1027,12 @@ svg { width: 18px; height: 18px; }
   border: 1px solid rgba(237, 228, 211, .15);
   border-radius: 22px;
   backdrop-filter: blur(22px) saturate(1.2);
-  bottom: 150px;
+  bottom: 158px;
   box-shadow: 0 22px 68px rgba(0,0,0,.32);
   display: flex;
   flex-direction: column;
   gap: 8px;
-  left: clamp(90px, 12vw, 180px);
+  left: clamp(72px, 10vw, 160px);
   max-height: min(36vh, 320px);
   max-width: none;
   opacity: 0;
@@ -1042,7 +1040,7 @@ svg { width: 18px; height: 18px; }
   padding: 14px;
   pointer-events: none;
   position: fixed;
-  right: clamp(90px, 12vw, 180px);
+  right: clamp(72px, 10vw, 160px);
   transform: translateY(16px);
   transition: opacity .32s var(--ease), transform .32s var(--ease);
   width: auto;
@@ -1085,7 +1083,7 @@ svg { width: 18px; height: 18px; }
 
 .liveFooter {
   align-items: center;
-  bottom: 22px;
+  bottom: 24px;
   display: flex;
   flex-direction: row;
   gap: 8px;
@@ -1098,7 +1096,7 @@ svg { width: 18px; height: 18px; }
 
 .has-comparison .liveFooter,
 .mode-comparison .liveFooter {
-  bottom: 22px;
+  bottom: 24px;
 }
 
 .liveFooter button,
@@ -1191,11 +1189,11 @@ svg { width: 18px; height: 18px; }
 @media (max-width: 900px) {
   body { overflow: auto; }
   .cockpit { min-height: 100dvh; overflow-y: auto; }
-  .stage { min-height: 100dvh; height: auto; padding-top: 96px; padding-bottom: 180px; }
+  .stage { min-height: 100dvh; height: auto; padding-top: 106px; padding-bottom: 220px; }
   .has-comparison .stage,
   .mode-comparison .stage {
-    padding-top: 72px;
-    padding-bottom: 190px;
+    padding-top: 86px;
+    padding-bottom: 230px;
   }
   .orbDock { margin-top: 46px; }
   .has-comparison .orbDock,
@@ -1216,20 +1214,25 @@ svg { width: 18px; height: 18px; }
     width: 146px;
   }
   .brand {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 8px;
-    justify-content: center;
-    min-height: 92px;
+    align-items: center;
+    flex-direction: row;
+    gap: 10px;
+    justify-content: space-between;
+    min-height: 78px;
   }
   .headerSupport {
-    bottom: 82px;
-    gap: 14px;
-    left: 18px;
-    max-width: calc(100vw - 92px);
-    overflow-x: auto;
-    padding-bottom: 2px;
-    right: 74px;
+    bottom: auto;
+    font-size: 9px;
+    left: auto;
+    letter-spacing: .14em;
+    margin-left: auto;
+    max-width: min(48vw, 280px);
+    min-height: 32px;
+    overflow: hidden;
+    padding: 0 10px;
+    position: static;
+    right: auto;
+    text-overflow: ellipsis;
     transform: none;
     white-space: nowrap;
   }
@@ -1274,7 +1277,7 @@ svg { width: 18px; height: 18px; }
   }
   .sourceStrip { border-radius: 18px; bottom: auto; flex-wrap: wrap; position: relative; }
   .askBar {
-    bottom: 148px;
+    bottom: 142px;
     left: 18px;
     max-width: none;
     right: 18px;
@@ -1283,7 +1286,7 @@ svg { width: 18px; height: 18px; }
   }
   .askBar.isOpen { transform: translateY(0); }
   .chatHistoryPanel {
-    bottom: 212px;
+    bottom: 206px;
     left: 18px;
     max-height: 32vh;
     max-width: none;
@@ -1304,7 +1307,7 @@ svg { width: 18px; height: 18px; }
     bottom: 18px;
     flex-direction: row;
     left: 18px;
-    right: 18px;
+    right: 82px;
     top: auto;
     transform: none;
   }
@@ -1315,7 +1318,7 @@ svg { width: 18px; height: 18px; }
     padding: 0 10px;
   }
   .heroCopy {
-    bottom: 152px;
-    max-width: calc(100vw - 108px);
+    bottom: 132px;
+    max-width: calc(100vw - 36px);
   }
 }
