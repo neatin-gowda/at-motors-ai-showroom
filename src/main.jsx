@@ -32,7 +32,7 @@ const showroomScenes = [
   },
 ];
 
-const FALLBACK_CAR_IMAGE = 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=90&w=1600';
+const FALLBACK_CAR_IMAGE = '/car-placeholder.svg';
 
 const LOCAL_SHOWROOM_MODELS = [
   ['Ford', 'Mustang GT', 'Performance coupe', 'V8 theatre with daily usability and strong showroom appeal.', 'https://images.unsplash.com/photo-1561535743-c82c241502d5?auto=format&fit=crop&q=90&w=1600'],
@@ -983,7 +983,7 @@ function App() {
 
   return (
     <main className={`cockpit mode-${mode} ${comparison ? 'has-comparison' : ''}`}>
-      <div className="kenBurns" style={{ backgroundImage: `url(${backgroundImage})` }} />
+      <div className="kenBurns" style={{ backgroundImage: `url(${backgroundImage}), url(${FALLBACK_CAR_IMAGE})` }} />
       <div className="shade" />
       <header className="brand">
         <div className="brandLogo">

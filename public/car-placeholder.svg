@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-label="AT Motors luxury vehicle placeholder">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#1E2638"/>
+      <stop offset=".52" stop-color="#091120"/>
+      <stop offset="1" stop-color="#2b1422"/>
+    </linearGradient>
+    <radialGradient id="glow" cx=".72" cy=".42" r=".58">
+      <stop offset="0" stop-color="#E8743C" stop-opacity=".42"/>
+      <stop offset=".38" stop-color="#B89968" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="car" x1="0" x2="1">
+      <stop offset="0" stop-color="#F8F4ED" stop-opacity=".18"/>
+      <stop offset=".42" stop-color="#FFFFFF" stop-opacity=".62"/>
+      <stop offset=".72" stop-color="#C9B89A" stop-opacity=".3"/>
+      <stop offset="1" stop-color="#F4A261" stop-opacity=".18"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-40%" width="140%" height="180%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect width="1600" height="900" fill="url(#glow)"/>
+  <path d="M150 575 C270 445 382 380 528 360 L720 224 C770 190 838 184 900 212 L1076 292 C1218 310 1328 365 1448 475 L1475 575 Z" fill="#050b16" opacity=".72"/>
+  <path d="M197 540 C312 432 414 391 548 383 L740 254 C779 228 829 224 877 244 L1042 320 C1184 332 1300 389 1415 500" fill="none" stroke="url(#car)" stroke-width="16" stroke-linecap="round"/>
+  <path d="M540 383 L731 287 C789 258 852 257 909 286 L1036 344" fill="none" stroke="#8fb2ff" stroke-opacity=".18" stroke-width="10" stroke-linecap="round"/>
+  <path d="M274 564 H1325" stroke="#F8F4ED" stroke-opacity=".18" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="426" cy="585" r="78" fill="#030711" stroke="#F8F4ED" stroke-opacity=".24" stroke-width="12"/>
+  <circle cx="1182" cy="585" r="78" fill="#030711" stroke="#F8F4ED" stroke-opacity=".24" stroke-width="12"/>
+  <path d="M376 584h100M1132 584h100" stroke="#E8743C" stroke-opacity=".5" stroke-width="8" stroke-linecap="round" filter="url(#soft)"/>
+  <text x="800" y="720" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="38" font-weight="800" letter-spacing="14" fill="#EDE4D3" opacity=".78">AT MOTORS</text>
+</svg>
