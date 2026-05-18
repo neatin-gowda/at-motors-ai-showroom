@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#1E2638"/>
+  <circle cx="256" cy="256" r="174" fill="url(#g)"/>
+  <text x="256" y="236" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="76" font-weight="900" fill="#1E2638">AT</text>
+  <text x="256" y="310" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="48" font-weight="900" letter-spacing="10" fill="#1E2638">MOTORS</text>
+  <defs>
+    <linearGradient id="g" x1="120" x2="392" y1="96" y2="420" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8F4ED"/>
+      <stop offset=".58" stop-color="#C9B89A"/>
+      <stop offset="1" stop-color="#E8743C"/>
+    </linearGradient>
+  </defs>
+</svg>

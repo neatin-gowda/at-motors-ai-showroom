@@ -1,0 +1,19 @@
+{
+  "name": "AT MOTORS AI Concierge",
+  "short_name": "AT MOTORS",
+  "description": "Luxury automotive AI voice and chat concierge.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#1E2638",
+  "theme_color": "#1E2638",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

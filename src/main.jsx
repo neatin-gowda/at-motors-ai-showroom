@@ -2,6 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
 
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+  });
+}
+
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 const REALTIME_SAMPLE_RATE = 24000;
 const REALTIME_VOICE = 'alloy';
